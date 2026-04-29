@@ -2,7 +2,7 @@
 - name: Ensure the role is applied on a supported platform
   ansible.builtin.assert:
     that:
-      - ansible_os_family == 'Debian'
+      - ansible_facts['os_family'] == 'Debian'
     fail_msg: This role currently supports Debian and Ubuntu Jenkins controllers.
 
 - name: Ensure the Jenkins release channel is supported

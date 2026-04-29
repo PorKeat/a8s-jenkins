@@ -35,6 +35,14 @@ Install the required collection with:
 ansible-galaxy collection install -r collections/requirements.yml
 ```
 
+Ready-to-run project files are also included at the repository root:
+
+- `inventory.ini` points at `34.87.139.220`
+- `config.yml` contains the tracked placeholder controller, job, node, and credential settings
+- `config.secrets.yml` is a gitignored local override for live secrets
+- `site.yml` applies the role using `config.yml` and then loads `config.secrets.yml` when present
+- `justfile` provides simple run commands
+
 ## Role variables
 
 The most important variables are:
@@ -48,7 +56,7 @@ jenkins_string_credentials: []
 jenkins_ssh_private_key_credentials: []
 ```
 
-See `examples/jenkins-vars.yml.example` for a starter vars file you can move into Vault.
+Use the repository root `config.yml` as the tracked starter file, and keep live values in `config.secrets.yml`.
 
 ## Example playbook
 
@@ -60,9 +68,35 @@ See `examples/jenkins-vars.yml.example` for a starter vars file you can move int
   collections:
     - community.general
   vars_files:
-    - vault/jenkins.yml
+    - config.yml
   roles:
     - role: jenkins_autonomous_istad
+```
+
+## Run it against `34.87.139.220`
+
+1. Edit `inventory.ini` if your SSH username is not `ubuntu`.
+2. Keep `config.yml` committed with placeholders.
+3. Put live secrets and local-only overrides in `config.secrets.yml`.
+4. Install the collection:
+
+```bash
+ansible-galaxy collection install -r collections/requirements.yml
+```
+
+5. Run the playbook:
+
+```bash
+ANSIBLE_LOCAL_TEMP=/private/tmp ansible-playbook -i inventory.ini site.yml
+```
+
+Or use `just`:
+
+```bash
+just install
+just check
+just safe-config
+just apply
 ```
 
 ## What the role configures
@@ -80,4 +114,5 @@ See `examples/jenkins-vars.yml.example` for a starter vars file you can move int
 ## Notes
 
 - The role intentionally does not embed the live credentials from `setup.md`.
+- The tracked `config.yml` stays on `replace-me` placeholders, while `config.secrets.yml` carries local live secrets.
 - `deploy-pipeline` is scaffolded as a placeholder because the notes describe its parameters and flow, but do not include enough source-of-truth SCM details to recreate the exact job safely.

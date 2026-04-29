@@ -1,0 +1,140 @@
+---
+# This tracked file stays safe for Git with placeholder values.
+# Put real secret values in config.secrets.yml instead.
+
+# Main Jenkins URL used by Jenkins Location configuration.
+# Change this to https://your-domain if you later put Jenkins behind a domain and TLS.
+jenkins_url: "http://34.87.139.220:8080"
+
+# Local service settings on the Jenkins host.
+jenkins_http_port: 8080
+jenkins_wait_host: "127.0.0.1"
+jenkins_wait_timeout: 300
+jenkins_java_package: openjdk-17-jre
+jenkins_java_opts: "-Djenkins.install.runSetupWizard=false"
+
+# Controller configuration.
+jenkins_system_message: "Managed by Ansible for the Jenkins host at 34.87.139.220."
+jenkins_controller_executors: 2
+jenkins_agent_port: 50000
+
+# Replace these with your real admin values before running the playbook.
+jenkins_admin_username: "replace-me"
+jenkins_admin_password: "replace-me"
+jenkins_admin_full_name: "Autonomous Istad Jenkins Admin"
+jenkins_admin_email: "devops@example.com"
+
+# Agent documented in the setup notes.
+jenkins_agents:
+  - name: trivy
+    label: trivy
+    executors: 1
+    remote_fs: /home/enz/jenkins
+    description: Used by the image build, scan, and push stage in the shared deploy pipeline.
+    mode: NORMAL
+    web_socket: false
+
+# Repository-backed pipeline jobs documented in the setup notes.
+jenkins_pipeline_jobs:
+  - name: a8s-backend
+    description: Managed pipeline job for the a8s-backend repository.
+    repo_url: https://github.com/ITProfessional-Gen01/a8s-backend.git
+    branch: main
+    script_path: Jenkinsfile
+    credential_id: a8s-backend-credential
+    github_push: true
+    lightweight: true
+  - name: a8s-frontend
+    description: Managed pipeline job for the a8s-frontend repository.
+    repo_url: https://github.com/ITProfessional-Gen01/a8s-frontend.git
+    branch: main
+    script_path: Jenkinsfile
+    credential_id: a8s-frontend-credential
+    github_push: true
+    lightweight: true
+  - name: a8s-admin
+    description: Managed pipeline job for the a8s-admin repository.
+    repo_url: https://github.com/ITProfessional-Gen01/a8s-admin.git
+    branch: main
+    script_path: Jenkinsfile
+    credential_id: a8s-backend-credential
+    github_push: true
+    lightweight: true
+
+# Jobs named in the notes that still need real pipeline definitions.
+jenkins_placeholder_jobs:
+  - name: deploy-microservices
+    description: Placeholder scaffolded from setup notes.
+  - name: deploy-pipeline
+    description: Placeholder scaffolded from setup notes. Replace with the real shared deploy pipeline implementation.
+  - name: deploy-pipeliness
+    description: Placeholder scaffolded from setup notes.
+  - name: deploy-service-test
+    description: Placeholder scaffolded from setup notes.
+  - name: share_lib
+    description: Placeholder scaffolded from setup notes.
+  - name: trivy
+    description: Placeholder scaffolded from setup notes.
+
+# Keep placeholders here. Put real secrets in config.secrets.yml, which is gitignored.
+jenkins_string_credentials:
+  - id: sonarqube-token
+    description: sonarqube-token
+    secret: "replace-me"
+  - id: DEFECTDOJO
+    description: DefectDojo API token or secret text
+    secret: "replace-me"
+  - id: registry-url
+    description: Registry URL
+    secret: "replace-me"
+  - id: registry-repository
+    description: Registry repository
+    secret: "replace-me"
+  - id: gitops-repo-url
+    description: GitOps repository URL
+    secret: "replace-me"
+  - id: infra-repo-url
+    description: Infrastructure repository URL
+    secret: "replace-me"
+  - id: infra-repo-url-micro
+    description: Microservices infrastructure repository URL
+    secret: "replace-me"
+  - id: registry-repository-micro
+    description: Microservices registry repository
+    secret: "replace-me"
+  - id: gitops-repo-url-micro
+    description: Microservices GitOps repository URL
+    secret: "replace-me"
+  - id: register-url-micro
+    description: Microservices registry URL
+    secret: "replace-me"
+  - id: a8s-admin-github-token
+    description: GitHub token used by a8s-admin
+    secret: "replace-me"
+
+jenkins_username_password_credentials:
+  - id: a8s-backend-credential
+    description: SCM credential for a8s-backend and a8s-admin
+    username: "replace-me"
+    password: "replace-me"
+  - id: a8s-frontend-credential
+    description: SCM credential for a8s-frontend
+    username: "replace-me"
+    password: "replace-me"
+  - id: registry-credentials
+    description: Container registry credential
+    username: "replace-me"
+    password: "replace-me"
+  - id: DOCKERHUB-CREDENTIAL
+    description: Docker Hub credential
+    username: "replace-me"
+    password: "replace-me"
+
+jenkins_ssh_private_key_credentials:
+  - id: gitops-ssh
+    description: Monolithic GitOps
+    username: git
+    private_key: |
+      -----BEGIN OPENSSH PRIVATE KEY-----
+      replace-me
+      -----END OPENSSH PRIVATE KEY-----

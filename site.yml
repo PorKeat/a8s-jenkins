@@ -1,0 +1,20 @@
+---
+- name: Configure the Jenkins controller on 34.87.139.220
+  hosts: jenkins
+  become: true
+  collections:
+    - community.general
+  vars_files:
+    - config.yml
+  pre_tasks:
+    - name: Check whether a local secret override file exists
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/config.secrets.yml"
+      register: jenkins_secret_override_file
+
+    - name: Load local secret overrides
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/config.secrets.yml"
+      when: jenkins_secret_override_file.stat.exists
+  roles:
+    - role: jenkins_autonomous_istad

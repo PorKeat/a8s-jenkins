@@ -1,8 +1,0 @@
----
-- name: Configure the autonomous-istad Jenkins controller
-  hosts: jenkins
-  become: true
-  collections:
-    - community.general
-  roles:
-    - role: jenkins_autonomous_istad

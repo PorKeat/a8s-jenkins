@@ -10,6 +10,8 @@
     that:
       - jenkins_admin_username | length > 0
       - jenkins_admin_password | length > 0
+      - jenkins_admin_username != 'replace-me'
+      - jenkins_admin_password != 'replace-me'
     fail_msg: Set jenkins_admin_username and jenkins_admin_password before running the role.
 
 - name: Prevent the default example password from being used

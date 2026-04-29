@@ -37,8 +37,20 @@
     state: present
     update_cache: true
 
-- name: Ensure Jenkins service is stopped before plugin and JCasC sync
+- name: Reset failed Jenkins service state before startup
+  ansible.builtin.command: "systemctl reset-failed {{ jenkins_service_name }}"
+  changed_when: false
+  failed_when: false
+
+- name: Ensure Jenkins service is enabled and started for plugin installation
   ansible.builtin.service:
     name: "{{ jenkins_service_name }}"
-    state: stopped
-  failed_when: false
+    enabled: true
+    state: started
+
+- name: Wait for Jenkins HTTP port before plugin installation
+  ansible.builtin.wait_for:
+    host: "{{ jenkins_wait_host }}"
+    port: "{{ jenkins_http_port }}"
+    timeout: "{{ jenkins_wait_timeout }}"
+    delay: 5

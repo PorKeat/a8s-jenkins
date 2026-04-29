@@ -5,11 +5,13 @@ jenkins_service_name: jenkins
 jenkins_home: /var/lib/jenkins
 jenkins_http_port: 8080
 jenkins_url: http://127.0.0.1:8080
+jenkins_local_url: "http://127.0.0.1:{{ jenkins_http_port }}"
 jenkins_wait_host: 127.0.0.1
 jenkins_wait_timeout: 300
 
 jenkins_release_channel: weekly
 jenkins_java_package: openjdk-21-jre
+jenkins_java_home: /usr/lib/jvm/java-21-openjdk-amd64
 jenkins_java_opts: "-Djenkins.install.runSetupWizard=false"
 jenkins_apt_keyring_path: /etc/apt/keyrings/jenkins-keyring.asc
 jenkins_apt_key_url: "{{ 'https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key' if jenkins_release_channel == 'lts' else 'https://pkg.jenkins.io/debian/jenkins.io-2026.key' }}"

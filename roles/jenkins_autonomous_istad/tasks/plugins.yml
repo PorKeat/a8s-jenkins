@@ -12,6 +12,9 @@
     name: "{{ item.name }}"
     version: "{{ item.version | default(omit) }}"
     jenkins_home: "{{ jenkins_home }}"
+    url: "{{ jenkins_local_url }}"
+    url_username: "{{ jenkins_admin_username }}"
+    url_password: "{{ jenkins_admin_password }}"
     with_dependencies: "{{ item.with_dependencies | default(true) }}"
     state: present
   loop: "{{ jenkins_plugins }}"

@@ -13,7 +13,8 @@ jenkins_url: "https://jenkins.autonomous-istad.com"
 jenkins_http_port: 8080
 jenkins_wait_host: "127.0.0.1"
 jenkins_wait_timeout: 300
-jenkins_java_package: openjdk-17-jre
+jenkins_java_package: openjdk-21-jre
+jenkins_java_home: "/usr/lib/jvm/java-21-openjdk-amd64"
 jenkins_java_opts: "-Djenkins.install.runSetupWizard=false"
 
 # Controller configuration.

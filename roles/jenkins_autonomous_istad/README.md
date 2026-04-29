@@ -8,7 +8,7 @@ The role installs Jenkins on Debian/Ubuntu, installs the plugins called out in t
 - `a8s-frontend`
 - `a8s-admin`
 
-It also scaffolds the remaining named jobs from the notes as disabled placeholder pipeline jobs so the controller layout is reproducible without guessing missing SCM details:
+It also currently scaffolds the remaining named jobs from the notes as disabled placeholder pipeline jobs:
 
 - `deploy-microservices`
 - `deploy-pipeline`
@@ -23,6 +23,8 @@ It also scaffolds the remaining named jobs from the notes as disabled placeholde
 - Credential values are supplied through Ansible variables, ideally from Ansible Vault.
 - The three application pipeline jobs are created from the exact repositories and branches documented in the notes.
 - Jobs with incomplete source details in the notes are created as disabled placeholders instead of inventing a pipeline implementation.
+- The tracked config now uses the public Jenkins URL `https://jenkins.autonomous-istad.com`.
+- The install defaults follow the current official Jenkins Debian/Ubuntu guidance with Java 21 and the 2026 package signing key.
 
 ## Requirements
 
@@ -37,10 +39,11 @@ ansible-galaxy collection install -r collections/requirements.yml
 
 Ready-to-run project files are also included at the repository root:
 
-- `inventory.ini` points at `34.87.139.220`
-- `config.yml` contains the tracked placeholder controller, job, node, and credential settings
-- `config.secrets.yml` is a gitignored local override for live secrets
-- `site.yml` applies the role using `config.yml` and then loads `config.secrets.yml` when present
+- `config.yml` contains the target host plus tracked non-secret controller, job, and node settings
+- `config-secret.yml` is a gitignored local override for credentials and live secrets
+- `config-secret-example.yml` is the tracked starter file for other users
+- `inventory.ini` only provides a local Ansible entrypoint; the actual Jenkins target host is read from `config.yml`
+- `site.yml` applies the role using `config.yml` and then loads `config-secret.yml` when present
 - `justfile` provides simple run commands
 
 ## Role variables
@@ -48,6 +51,9 @@ Ready-to-run project files are also included at the repository root:
 The most important variables are:
 
 ```yaml
+jenkins_target_host: "34.87.139.220"
+jenkins_target_user: "ubuntu"
+jenkins_release_channel: "weekly"
 jenkins_admin_username: "replace-me"
 jenkins_admin_password: "replace-me"
 jenkins_url: "https://jenkins.autonomous-istad.com"
@@ -56,14 +62,14 @@ jenkins_string_credentials: []
 jenkins_ssh_private_key_credentials: []
 ```
 
-Use the repository root `config.yml` as the tracked starter file, and keep live values in `config.secrets.yml`.
+Use `config.yml` for the target host and tracked non-secret settings, and keep live values in `config-secret.yml`.
 
 ## Example playbook
 
 ```yaml
 ---
 - name: Configure Jenkins
-  hosts: jenkins
+  hosts: jenkins_target
   become: true
   collections:
     - community.general
@@ -75,16 +81,17 @@ Use the repository root `config.yml` as the tracked starter file, and keep live 
 
 ## Run it against `34.87.139.220`
 
-1. Edit `inventory.ini` if your SSH username is not `ubuntu`.
-2. Keep `config.yml` committed with placeholders.
-3. Put live secrets and local-only overrides in `config.secrets.yml`.
-4. Install the collection:
+1. Edit `config.yml` and set `jenkins_target_host` and `jenkins_target_user` for your server.
+2. Keep `config.yml` committed with non-secret settings only.
+3. Copy `config-secret-example.yml` to `config-secret.yml`.
+4. Fill the real credentials in `config-secret.yml`.
+5. Install the collection:
 
 ```bash
 ansible-galaxy collection install -r collections/requirements.yml
 ```
 
-5. Run the playbook:
+6. Run the playbook:
 
 ```bash
 ANSIBLE_LOCAL_TEMP=/private/tmp ansible-playbook -i inventory.ini site.yml
@@ -102,8 +109,9 @@ just apply
 ## What the role configures
 
 - Jenkins package, service, and Java
+- Official Jenkins Debian/Ubuntu package installation using Java 21
 - Jenkins Configuration as Code
-- Confirmed plugins from the notes, including SonarQube and Pipeline plugins
+- Confirmed plugins from the notes, plus the additional live plugins required by the current pipelines such as `timestamper` and `ws-cleanup`
 - Built-in controller executors set to `2`
 - `trivy` inbound agent definition with remote path `/home/enz/jenkins`
 - Local admin user
@@ -114,5 +122,8 @@ just apply
 ## Notes
 
 - The role intentionally does not embed the live credentials from `setup.md`.
-- The tracked `config.yml` stays on `replace-me` placeholders, while `config.secrets.yml` carries local live secrets.
+- The tracked `config.yml` carries only non-secret settings, while `config-secret.yml` carries local live secrets.
+- The remote server target is set in `config.yml` through `jenkins_target_host`, `jenkins_target_user`, `jenkins_target_port`, and `jenkins_target_python_interpreter`.
+- The Jenkins public URL is set to `https://jenkins.autonomous-istad.com`, but this role does not provision the reverse proxy or TLS certificate.
+- `jenkins_release_channel: weekly` installs the latest official weekly Jenkins release; set it to `lts` if you want the latest Long Term Support release instead.
 - `deploy-pipeline` is scaffolded as a placeholder because the notes describe its parameters and flow, but do not include enough source-of-truth SCM details to recreate the exact job safely.

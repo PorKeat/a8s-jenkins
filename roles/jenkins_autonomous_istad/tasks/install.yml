@@ -10,15 +10,23 @@
     state: present
     update_cache: true
 
+- name: Ensure the Jenkins apt keyrings directory exists
+  ansible.builtin.file:
+    path: "{{ jenkins_apt_keyring_path | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
 - name: Add Jenkins apt keyring
   ansible.builtin.get_url:
-    url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
-    dest: /usr/share/keyrings/jenkins-keyring.asc
+    url: "{{ jenkins_apt_key_url }}"
+    dest: "{{ jenkins_apt_keyring_path }}"
     mode: "0644"
 
 - name: Add Jenkins apt repository
   ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/"
+    repo: "deb [signed-by={{ jenkins_apt_keyring_path }}] {{ jenkins_apt_repository_base_url }} binary/"
     filename: jenkins
     state: present
     update_cache: true

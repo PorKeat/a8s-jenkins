@@ -1,6 +1,24 @@
 ---
-- name: Configure the Jenkins controller on 34.87.139.220
-  hosts: jenkins
+- name: Register the configured Jenkins target host
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - config.yml
+  tasks:
+    - name: Add the configured Jenkins target to a runtime inventory group
+      ansible.builtin.add_host:
+        name: "{{ jenkins_target_host }}"
+        groups: jenkins_target
+        ansible_host: "{{ jenkins_target_host }}"
+        ansible_user: "{{ jenkins_target_user }}"
+        ansible_port: "{{ jenkins_target_port }}"
+        ansible_python_interpreter: "{{ jenkins_target_python_interpreter }}"
+        ansible_ssh_private_key_file: "{{ jenkins_target_ssh_private_key_file | default(omit) }}"
+        ansible_ssh_common_args: "{{ jenkins_target_ssh_common_args | default(omit) }}"
+      changed_when: false
+
+- name: Configure the Jenkins controller on the configured target host
+  hosts: jenkins_target
   become: true
   collections:
     - community.general
@@ -9,12 +27,12 @@
   pre_tasks:
     - name: Check whether a local secret override file exists
       ansible.builtin.stat:
-        path: "{{ playbook_dir }}/config.secrets.yml"
+        path: "{{ playbook_dir }}/config-secret.yml"
       register: jenkins_secret_override_file
 
     - name: Load local secret overrides
       ansible.builtin.include_vars:
-        file: "{{ playbook_dir }}/config.secrets.yml"
+        file: "{{ playbook_dir }}/config-secret.yml"
       when: jenkins_secret_override_file.stat.exists
   roles:
     - role: jenkins_autonomous_istad

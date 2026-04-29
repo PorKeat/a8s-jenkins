@@ -7,8 +7,12 @@ jenkins_url: http://127.0.0.1:8080
 jenkins_wait_host: 127.0.0.1
 jenkins_wait_timeout: 300
 
-jenkins_java_package: openjdk-17-jre
+jenkins_release_channel: weekly
+jenkins_java_package: openjdk-21-jre
 jenkins_java_opts: "-Djenkins.install.runSetupWizard=false"
+jenkins_apt_keyring_path: /etc/apt/keyrings/jenkins-keyring.asc
+jenkins_apt_key_url: "{{ 'https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key' if jenkins_release_channel == 'lts' else 'https://pkg.jenkins.io/debian/jenkins.io-2026.key' }}"
+jenkins_apt_repository_base_url: "{{ 'https://pkg.jenkins.io/debian-stable' if jenkins_release_channel == 'lts' else 'https://pkg.jenkins.io/debian' }}"
 
 jenkins_system_message: Managed by Ansible from the autonomous-istad Jenkins setup notes.
 jenkins_controller_executors: 2
@@ -22,9 +26,18 @@ jenkins_admin_email: jenkins@example.com
 jenkins_plugins:
   - name: configuration-as-code
   - name: job-dsl
+  - name: ant
+  - name: build-timeout
+  - name: dark-theme
+  - name: email-ext
+  - name: gradle
   - name: workflow-aggregator
   - name: workflow-cps
   - name: workflow-job
+  - name: workflow-multibranch
+  - name: pipeline-build-step
+  - name: pipeline-graph-view
+  - name: pipeline-github-lib
   - name: pipeline-model-definition
   - name: pipeline-groovy-lib
   - name: git
@@ -34,12 +47,18 @@ jenkins_plugins:
   - name: github-branch-source
   - name: credentials
   - name: credentials-binding
+  - name: ldap
+  - name: matrix-auth
+  - name: matrix-project
   - name: ssh-credentials
   - name: ssh-slaves
   - name: sonar
     version: 2.18.2
   - name: sonar-quality-gates
     version: "364.v67a_f255f340f"
+  - name: theme-manager
+  - name: timestamper
+  - name: ws-cleanup
 
 jenkins_agents:
   - name: trivy
@@ -111,4 +130,3 @@ jenkins_ssh_private_key_credentials:
     description: Monolithic GitOps SSH credential
     username: git
     private_key: ""
-

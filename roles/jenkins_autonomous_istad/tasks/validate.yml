@@ -5,6 +5,12 @@
       - ansible_os_family == 'Debian'
     fail_msg: This role currently supports Debian and Ubuntu Jenkins controllers.
 
+- name: Ensure the Jenkins release channel is supported
+  ansible.builtin.assert:
+    that:
+      - jenkins_release_channel in ['lts', 'weekly']
+    fail_msg: Set jenkins_release_channel to either 'lts' or 'weekly'.
+
 - name: Ensure the admin account variables are not left empty
   ansible.builtin.assert:
     that:

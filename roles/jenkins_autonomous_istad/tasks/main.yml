@@ -1,0 +1,13 @@
+---
+- name: Validate role inputs
+  ansible.builtin.import_tasks: validate.yml
+
+- name: Install Jenkins
+  ansible.builtin.import_tasks: install.yml
+  when: jenkins_install | bool
+
+- name: Install Jenkins plugins
+  ansible.builtin.import_tasks: plugins.yml
+
+- name: Apply Jenkins Configuration as Code
+  ansible.builtin.import_tasks: jcasc.yml

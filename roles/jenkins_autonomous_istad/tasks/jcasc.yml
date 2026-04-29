@@ -1,0 +1,57 @@
+---
+- name: Ensure Jenkins Configuration as Code directory exists
+  ansible.builtin.file:
+    path: "{{ jenkins_home }}/casc_configs"
+    state: directory
+    owner: jenkins
+    group: jenkins
+    mode: "0750"
+
+- name: Render Job DSL into an Ansible fact
+  ansible.builtin.set_fact:
+    jenkins_job_dsl_script: "{{ lookup('template', 'jobs.groovy.j2') }}"
+  when: jenkins_manage_jobs | bool
+
+- name: Render Jenkins Configuration as Code
+  ansible.builtin.template:
+    src: jcasc.yaml.j2
+    dest: "{{ jenkins_home }}/casc_configs/jenkins.yaml"
+    owner: jenkins
+    group: jenkins
+    mode: "0600"
+  notify: restart jenkins
+
+- name: Ensure the systemd override directory exists
+  ansible.builtin.file:
+    path: "/etc/systemd/system/{{ jenkins_service_name }}.service.d"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Configure Jenkins systemd override for JCasC
+  ansible.builtin.template:
+    src: jenkins-override.conf.j2
+    dest: "/etc/systemd/system/{{ jenkins_service_name }}.service.d/override.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - reload systemd
+    - restart jenkins
+
+- name: Ensure Jenkins service is enabled and started
+  ansible.builtin.service:
+    name: "{{ jenkins_service_name }}"
+    enabled: true
+    state: started
+
+- name: Flush handlers so JCasC changes are applied now
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for Jenkins HTTP port
+  ansible.builtin.wait_for:
+    host: "{{ jenkins_wait_host }}"
+    port: "{{ jenkins_http_port }}"
+    timeout: "{{ jenkins_wait_timeout }}"
+    delay: 5

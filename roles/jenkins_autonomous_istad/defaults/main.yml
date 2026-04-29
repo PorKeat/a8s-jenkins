@@ -1,0 +1,114 @@
+---
+jenkins_install: true
+jenkins_service_name: jenkins
+jenkins_home: /var/lib/jenkins
+jenkins_http_port: 8080
+jenkins_url: http://127.0.0.1:8080
+jenkins_wait_host: 127.0.0.1
+jenkins_wait_timeout: 300
+
+jenkins_java_package: openjdk-17-jre
+jenkins_java_opts: "-Djenkins.install.runSetupWizard=false"
+
+jenkins_system_message: Managed by Ansible from the autonomous-istad Jenkins setup notes.
+jenkins_controller_executors: 2
+jenkins_agent_port: 50000
+
+jenkins_admin_username: admin
+jenkins_admin_password: change-me-now
+jenkins_admin_full_name: Jenkins Admin
+jenkins_admin_email: jenkins@example.com
+
+jenkins_plugins:
+  - name: configuration-as-code
+  - name: job-dsl
+  - name: workflow-aggregator
+  - name: workflow-cps
+  - name: workflow-job
+  - name: pipeline-model-definition
+  - name: pipeline-groovy-lib
+  - name: git
+  - name: git-client
+  - name: github
+  - name: github-api
+  - name: github-branch-source
+  - name: credentials
+  - name: credentials-binding
+  - name: ssh-credentials
+  - name: ssh-slaves
+  - name: sonar
+    version: 2.18.2
+  - name: sonar-quality-gates
+    version: "364.v67a_f255f340f"
+
+jenkins_agents:
+  - name: trivy
+    label: trivy
+    executors: 1
+    remote_fs: /home/enz/jenkins
+    description: Used by the image build, scan, and push stage in the shared deploy pipeline.
+    mode: NORMAL
+    web_socket: false
+
+jenkins_manage_jobs: true
+jenkins_pipeline_jobs:
+  - name: a8s-backend
+    description: Managed pipeline job for the a8s-backend repository.
+    repo_url: https://github.com/ITProfessional-Gen01/a8s-backend.git
+    branch: main
+    script_path: Jenkinsfile
+    credential_id: a8s-backend-credential
+    github_push: true
+    lightweight: true
+  - name: a8s-frontend
+    description: Managed pipeline job for the a8s-frontend repository.
+    repo_url: https://github.com/ITProfessional-Gen01/a8s-frontend.git
+    branch: main
+    script_path: Jenkinsfile
+    credential_id: a8s-frontend-credential
+    github_push: true
+    lightweight: true
+  - name: a8s-admin
+    description: Managed pipeline job for the a8s-admin repository.
+    repo_url: https://github.com/ITProfessional-Gen01/a8s-admin.git
+    branch: main
+    script_path: Jenkinsfile
+    credential_id: a8s-backend-credential
+    github_push: true
+    lightweight: true
+
+jenkins_placeholder_jobs:
+  - name: deploy-microservices
+    description: Placeholder scaffolded from setup notes.
+  - name: deploy-pipeline
+    description: Placeholder scaffolded from setup notes. Replace with the real shared deploy pipeline implementation.
+  - name: deploy-pipeliness
+    description: Placeholder scaffolded from setup notes.
+  - name: deploy-service-test
+    description: Placeholder scaffolded from setup notes.
+  - name: share_lib
+    description: Placeholder scaffolded from setup notes.
+  - name: trivy
+    description: Placeholder scaffolded from setup notes.
+
+jenkins_string_credentials:
+  - id: sonarqube-token
+    description: SonarQube token
+    secret: ""
+
+jenkins_username_password_credentials:
+  - id: a8s-backend-credential
+    description: SCM credential for a8s-backend
+    username: ""
+    password: ""
+  - id: a8s-frontend-credential
+    description: SCM credential for a8s-frontend
+    username: ""
+    password: ""
+
+jenkins_ssh_private_key_credentials:
+  - id: gitops-ssh
+    description: Monolithic GitOps SSH credential
+    username: git
+    private_key: ""
+

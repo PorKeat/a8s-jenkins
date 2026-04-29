@@ -1,0 +1,23 @@
+---
+galaxy_info:
+  author: Codex
+  role_name: jenkins_autonomous_istad
+  namespace: autonomous_istad
+  description: Reproducible Jenkins controller setup based on the autonomous-istad setup notes.
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Debian
+      versions:
+        - all
+    - name: Ubuntu
+      versions:
+        - all
+  galaxy_tags:
+    - jenkins
+    - ci
+    - pipeline
+    - jcasc
+    - devops
+
+dependencies: []

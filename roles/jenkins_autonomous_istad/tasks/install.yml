@@ -1,0 +1,36 @@
+---
+- name: Install Jenkins package prerequisites
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+      - fontconfig
+      - gnupg
+      - "{{ jenkins_java_package }}"
+    state: present
+    update_cache: true
+
+- name: Add Jenkins apt keyring
+  ansible.builtin.get_url:
+    url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+    dest: /usr/share/keyrings/jenkins-keyring.asc
+    mode: "0644"
+
+- name: Add Jenkins apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/"
+    filename: jenkins
+    state: present
+    update_cache: true
+
+- name: Install Jenkins
+  ansible.builtin.apt:
+    name: jenkins
+    state: present
+    update_cache: true
+
+- name: Ensure Jenkins service is stopped before plugin and JCasC sync
+  ansible.builtin.service:
+    name: "{{ jenkins_service_name }}"
+    state: stopped
+  failed_when: false

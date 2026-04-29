@@ -1,0 +1,82 @@
+{% set active_string_credentials = jenkins_string_credentials | rejectattr('secret', 'equalto', '') | list %}
+{% set active_username_password_credentials = jenkins_username_password_credentials | rejectattr('username', 'equalto', '') | rejectattr('password', 'equalto', '') | list %}
+{% set active_ssh_credentials = jenkins_ssh_private_key_credentials | rejectattr('private_key', 'equalto', '') | list %}
+jenkins:
+  systemMessage: {{ jenkins_system_message | to_json }}
+  mode: NORMAL
+  numExecutors: {{ jenkins_controller_executors | int }}
+  slaveAgentPort: {{ jenkins_agent_port | int }}
+  remotingSecurity:
+    enabled: true
+  crumbIssuer:
+    standard:
+      excludeClientIPFromCrumb: false
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: {{ jenkins_admin_username | to_json }}
+          name: {{ jenkins_admin_full_name | to_json }}
+          password: {{ jenkins_admin_password | to_json }}
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+{% if jenkins_agents | length > 0 %}
+  nodes:
+{% for agent in jenkins_agents %}
+    - permanent:
+        name: {{ agent.name | to_json }}
+        labelString: {{ agent.label | to_json }}
+        mode: {{ agent.mode | default('NORMAL') | to_json }}
+        numExecutors: {{ agent.executors | int }}
+        remoteFS: {{ agent.remote_fs | to_json }}
+        nodeDescription: {{ agent.description | default('Managed by Ansible') | to_json }}
+        retentionStrategy: "always"
+        launcher:
+          inbound:
+            webSocket: {{ agent.web_socket | default(false) | string | lower }}
+{% endfor %}
+{% endif %}
+
+unclassified:
+  location:
+    adminAddress: {{ jenkins_admin_email | to_json }}
+    url: {{ (jenkins_url.rstrip('/') ~ '/') | to_json }}
+
+{% if (active_string_credentials | length) + (active_username_password_credentials | length) + (active_ssh_credentials | length) > 0 %}
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+{% for item in active_string_credentials %}
+          - string:
+              id: {{ item.id | to_json }}
+              description: {{ item.description | default('Managed by Ansible') | to_json }}
+              scope: GLOBAL
+              secret: {{ item.secret | to_json }}
+{% endfor %}
+{% for item in active_username_password_credentials %}
+          - usernamePassword:
+              id: {{ item.id | to_json }}
+              description: {{ item.description | default('Managed by Ansible') | to_json }}
+              scope: GLOBAL
+              username: {{ item.username | to_json }}
+              password: {{ item.password | to_json }}
+{% endfor %}
+{% for item in active_ssh_credentials %}
+          - basicSSHUserPrivateKey:
+              id: {{ item.id | to_json }}
+              description: {{ item.description | default('Managed by Ansible') | to_json }}
+              scope: GLOBAL
+              username: {{ item.username | default('git') | to_json }}
+              privateKeySource:
+                directEntry:
+                  privateKey: {{ item.private_key | to_json }}
+{% endfor %}
+{% endif %}
+
+{% if jenkins_manage_jobs | bool %}
+jobs:
+  - script: |
+{{ jenkins_job_dsl_script | indent(6, true) }}
+{% endif %}

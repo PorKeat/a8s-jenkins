@@ -1,0 +1,19 @@
+---
+- name: Ensure the role is applied on a supported platform
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'Debian'
+    fail_msg: This role currently supports Debian and Ubuntu Jenkins controllers.
+
+- name: Ensure the admin account variables are not left empty
+  ansible.builtin.assert:
+    that:
+      - jenkins_admin_username | length > 0
+      - jenkins_admin_password | length > 0
+    fail_msg: Set jenkins_admin_username and jenkins_admin_password before running the role.
+
+- name: Prevent the default example password from being used
+  ansible.builtin.assert:
+    that:
+      - jenkins_admin_password != 'change-me-now'
+    fail_msg: Override jenkins_admin_password with a real secret, ideally from Ansible Vault.

@@ -1,0 +1,59 @@
+{% for job in jenkins_pipeline_jobs %}
+pipelineJob({{ job.name | to_json }}) {
+  description({{ job.description | default('Managed by Ansible.') | to_json }})
+  disabled({{ job.disabled | default(false) | string | lower }})
+  logRotator {
+    daysToKeep({{ job.days_to_keep | default(30) }})
+    numToKeep({{ job.num_to_keep | default(20) }})
+  }
+  properties {
+    disableConcurrentBuilds()
+  }
+{% if job.github_push | default(false) %}
+  triggers {
+    githubPush()
+  }
+{% endif %}
+  definition {
+    cpsScm {
+      scm {
+        git {
+          remote {
+            url({{ job.repo_url | to_json }})
+            credentials({{ job.credential_id | to_json }})
+          }
+          branch({{ ('*/' ~ job.branch) | to_json }})
+          extensions {
+            cleanBeforeCheckout()
+          }
+        }
+      }
+      lightweight({{ job.lightweight | default(true) | string | lower }})
+      scriptPath({{ job.script_path | default('Jenkinsfile') | to_json }})
+    }
+  }
+}
+
+{% endfor %}
+{% for job in jenkins_placeholder_jobs %}
+pipelineJob({{ job.name | to_json }}) {
+  description({{ job.description | default('Placeholder scaffolded from setup notes.') | to_json }})
+  disabled(true)
+  definition {
+    cps {
+      sandbox()
+      script('''pipeline {
+  agent any
+  stages {
+    stage('Placeholder') {
+      steps {
+        echo 'Replace this scaffolded placeholder with the real {{ job.name | replace("'", "\\'") }} job implementation.'
+      }
+    }
+  }
+}''')
+    }
+  }
+}
+
+{% endfor %}

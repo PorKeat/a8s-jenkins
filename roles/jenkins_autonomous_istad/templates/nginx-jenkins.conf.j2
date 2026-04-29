@@ -1,0 +1,76 @@
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    '' close;
+}
+
+map $http_x_forwarded_proto $jenkins_forwarded_proto {
+    default $scheme;
+    https https;
+    http http;
+}
+
+map $jenkins_forwarded_proto $jenkins_forwarded_port {
+    default $server_port;
+    https 443;
+    http 80;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name {{ jenkins_reverse_proxy_server_name }};
+
+{% if jenkins_reverse_proxy_http_redirect_to_https and jenkins_reverse_proxy_tls_mode != 'disabled' %}
+    return 301 https://$host$request_uri;
+{% else %}
+    client_max_body_size 2g;
+
+    location / {
+        proxy_pass http://127.0.0.1:{{ jenkins_http_port }};
+        proxy_http_version 1.1;
+        proxy_request_buffering off;
+        proxy_buffering off;
+        proxy_read_timeout 90s;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $jenkins_forwarded_port;
+        proxy_set_header X-Forwarded-Proto $jenkins_forwarded_proto;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+    }
+{% endif %}
+}
+
+{% if jenkins_reverse_proxy_tls_mode != 'disabled' %}
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name {{ jenkins_reverse_proxy_server_name }};
+
+    ssl_certificate {{ jenkins_reverse_proxy_tls_cert_path }};
+    ssl_certificate_key {{ jenkins_reverse_proxy_tls_key_path }};
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:JenkinsSSL:10m;
+
+    client_max_body_size 2g;
+
+    location / {
+        proxy_pass http://127.0.0.1:{{ jenkins_http_port }};
+        proxy_http_version 1.1;
+        proxy_request_buffering off;
+        proxy_buffering off;
+        proxy_read_timeout 90s;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $jenkins_forwarded_port;
+        proxy_set_header X-Forwarded-Proto $jenkins_forwarded_proto;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+    }
+}
+{% endif %}

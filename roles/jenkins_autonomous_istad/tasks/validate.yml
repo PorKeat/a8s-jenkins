@@ -17,6 +17,25 @@
       - jenkins_state in ['present', 'absent']
     fail_msg: Set jenkins_state to either 'present' or 'absent'.
 
+- name: Ensure the reverse proxy TLS mode is supported
+  ansible.builtin.assert:
+    that:
+      - jenkins_reverse_proxy_tls_mode in ['disabled', 'self_signed', 'provided']
+    fail_msg: Set jenkins_reverse_proxy_tls_mode to 'disabled', 'self_signed', or 'provided'.
+  when: jenkins_reverse_proxy_enabled | bool
+
+- name: Ensure provided reverse proxy TLS material is present when required
+  ansible.builtin.assert:
+    that:
+      - jenkins_reverse_proxy_provided_certificate | trim | length > 0
+      - jenkins_reverse_proxy_provided_private_key | trim | length > 0
+      - jenkins_reverse_proxy_provided_certificate != 'replace-me'
+      - jenkins_reverse_proxy_provided_private_key != 'replace-me'
+    fail_msg: "Set jenkins_reverse_proxy_provided_certificate and jenkins_reverse_proxy_provided_private_key when using jenkins_reverse_proxy_tls_mode: provided."
+  when:
+    - jenkins_reverse_proxy_enabled | bool
+    - jenkins_reverse_proxy_tls_mode == 'provided'
+
 - name: Ensure the admin account variables are not left empty
   ansible.builtin.assert:
     that:
@@ -33,3 +52,28 @@
       - jenkins_admin_password != 'change-me-now'
     fail_msg: Override jenkins_admin_password with a real secret, ideally from Ansible Vault.
   when: jenkins_state == 'present'
+
+- name: Build the active SSH credential id list
+  ansible.builtin.set_fact:
+    jenkins_active_ssh_credential_ids: >-
+      {{
+        jenkins_ssh_private_key_credentials
+        | rejectattr('private_key', 'equalto', '')
+        | rejectattr('private_key', 'search', 'replace-me')
+        | map(attribute='id')
+        | list
+      }}
+  when: jenkins_state == 'present'
+
+- name: Ensure SSH-launched Jenkins agents reference a real private key credential
+  ansible.builtin.assert:
+    that:
+      - item.launcher.credentials_id in jenkins_active_ssh_credential_ids
+    fail_msg: >-
+      Set a real SSH private key for Jenkins agent credential '{{ item.launcher.credentials_id }}'
+      in config-secret.yml before enabling the SSH agent '{{ item.name }}'.
+  loop: "{{ jenkins_agents }}"
+  when:
+    - jenkins_state == 'present'
+    - item.launcher is defined
+    - item.launcher.type | default('inbound') == 'ssh'

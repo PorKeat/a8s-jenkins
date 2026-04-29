@@ -16,3 +16,15 @@
     timeout: "{{ jenkins_wait_timeout }}"
     delay: 5
   listen: restart jenkins
+
+- name: reload nginx
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded
+  listen: reload nginx
+
+- name: restart nginx
+  ansible.builtin.service:
+    name: nginx
+    state: restarted
+  listen: restart nginx

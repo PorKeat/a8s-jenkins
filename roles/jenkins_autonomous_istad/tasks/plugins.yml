@@ -7,6 +7,15 @@
     group: jenkins
     mode: "0755"
 
+- name: Render the requested Jenkins plugin manifest
+  ansible.builtin.template:
+    src: plugins.txt.j2
+    dest: "{{ jenkins_plugin_manifest_path }}"
+    owner: jenkins
+    group: jenkins
+    mode: "0644"
+  register: jenkins_plugin_manifest
+
 - name: Discover plugin archives already present on disk
   ansible.builtin.find:
     paths: "{{ jenkins_home }}/plugins"
@@ -28,17 +37,147 @@
         | list
       }}
 
-- name: Install required Jenkins plugins
-  community.general.jenkins_plugin:
-    name: "{{ item.name }}"
-    version: "{{ item.version | default(omit) }}"
-    jenkins_home: "{{ jenkins_home }}"
-    url: "{{ jenkins_local_url }}"
-    url_username: "{{ jenkins_admin_username }}"
-    url_password: "{{ jenkins_admin_password }}"
-    force_basic_auth: true
-    with_dependencies: "{{ item.with_dependencies | default(true) }}"
-    state: present
-  loop: "{{ jenkins_plugins }}"
-  when: item.name not in jenkins_installed_plugin_names
-  notify: restart jenkins
+- name: Build the requested plugin name list
+  ansible.builtin.set_fact:
+    jenkins_requested_plugin_names: "{{ jenkins_plugins | map(attribute='name') | list }}"
+
+- name: Decide whether Jenkins plugin installation is required
+  ansible.builtin.set_fact:
+    jenkins_plugin_install_required: >-
+      {{
+        jenkins_plugin_manifest.changed
+        or ((jenkins_requested_plugin_names | difference(jenkins_installed_plugin_names)) | length > 0)
+      }}
+
+- name: Discover the jenkins-plugin-cli command
+  ansible.builtin.command: "which {{ jenkins_plugin_cli_command }}"
+  register: jenkins_plugin_cli_lookup
+  changed_when: false
+  failed_when: false
+  when: jenkins_plugin_install_required
+
+- name: Ensure the plugin manager cache directory exists
+  ansible.builtin.file:
+    path: "{{ jenkins_plugin_manager_cache_dir }}"
+    state: directory
+    owner: jenkins
+    group: jenkins
+    mode: "0755"
+  when: jenkins_plugin_install_required
+
+- name: Check whether the plugin manager jar already exists on the Jenkins host
+  ansible.builtin.stat:
+    path: "{{ jenkins_plugin_manager_jar_path }}"
+  register: jenkins_plugin_manager_jar_stat
+  when:
+    - jenkins_plugin_install_required
+    - jenkins_plugin_cli_lookup.rc != 0
+
+- name: Provision the official Jenkins plugin manager jar when the wrapper is unavailable
+  when:
+    - jenkins_plugin_install_required
+    - jenkins_plugin_cli_lookup.rc != 0
+    - not jenkins_plugin_manager_jar_stat.stat.exists
+  block:
+    - name: Download the plugin manager jar directly on the Jenkins host
+      ansible.builtin.get_url:
+        url: "{{ jenkins_plugin_manager_download_url }}"
+        dest: "{{ jenkins_plugin_manager_jar_path }}"
+        mode: "0755"
+        timeout: "{{ jenkins_plugin_manager_download_timeout }}"
+      register: jenkins_plugin_manager_remote_download
+      retries: "{{ jenkins_plugin_manager_download_retries }}"
+      delay: "{{ jenkins_plugin_manager_download_delay }}"
+      until: jenkins_plugin_manager_remote_download is succeeded
+
+  rescue:
+    - name: Ensure the local plugin manager cache directory exists
+      ansible.builtin.file:
+        path: "{{ jenkins_plugin_manager_local_cache_path | dirname }}"
+        state: directory
+        mode: "0755"
+      delegate_to: localhost
+      become: false
+
+    - name: Download the plugin manager jar on the control node as a fallback
+      ansible.builtin.get_url:
+        url: "{{ jenkins_plugin_manager_download_url }}"
+        dest: "{{ jenkins_plugin_manager_local_cache_path }}"
+        mode: "0644"
+        timeout: "{{ jenkins_plugin_manager_download_timeout }}"
+      register: jenkins_plugin_manager_local_download
+      retries: "{{ jenkins_plugin_manager_download_retries }}"
+      delay: "{{ jenkins_plugin_manager_download_delay }}"
+      until: jenkins_plugin_manager_local_download is succeeded
+      delegate_to: localhost
+      become: false
+
+    - name: Copy the plugin manager jar from the control node to the Jenkins host
+      ansible.builtin.copy:
+        src: "{{ jenkins_plugin_manager_local_cache_path }}"
+        dest: "{{ jenkins_plugin_manager_jar_path }}"
+        mode: "0755"
+
+- name: Gather service facts before bulk plugin installation
+  ansible.builtin.service_facts:
+  when: jenkins_plugin_install_required
+
+- name: Stop Jenkins before bulk plugin installation
+  ansible.builtin.service:
+    name: "{{ jenkins_service_name }}"
+    state: stopped
+  when:
+    - jenkins_plugin_install_required
+    - ansible_facts.services[jenkins_service_name ~ '.service'] is defined
+    - ansible_facts.services[jenkins_service_name ~ '.service'].state == 'running'
+
+- name: Install required Jenkins plugins with the bundled wrapper
+  ansible.builtin.command:
+    argv:
+      - "{{ jenkins_plugin_cli_lookup.stdout }}"
+      - --plugin-file
+      - "{{ jenkins_plugin_manifest_path }}"
+      - --plugin-download-directory
+      - "{{ jenkins_home }}/plugins"
+      - --war
+      - "{{ jenkins_war_path }}"
+  environment:
+    HOME: "{{ jenkins_home }}"
+    JENKINS_HOME: "{{ jenkins_home }}"
+    JAVA_HOME: "{{ jenkins_java_home }}"
+    CACHE_DIR: "{{ jenkins_plugin_manager_cache_dir }}"
+  when:
+    - jenkins_plugin_install_required
+    - jenkins_plugin_cli_lookup.rc == 0
+
+- name: Install required Jenkins plugins with the official plugin manager jar
+  ansible.builtin.command:
+    argv:
+      - java
+      - -jar
+      - "{{ jenkins_plugin_manager_jar_path }}"
+      - --plugin-file
+      - "{{ jenkins_plugin_manifest_path }}"
+      - --plugin-download-directory
+      - "{{ jenkins_home }}/plugins"
+      - --war
+      - "{{ jenkins_war_path }}"
+  environment:
+    HOME: "{{ jenkins_home }}"
+    JENKINS_HOME: "{{ jenkins_home }}"
+    JAVA_HOME: "{{ jenkins_java_home }}"
+    CACHE_DIR: "{{ jenkins_plugin_manager_cache_dir }}"
+  when:
+    - jenkins_plugin_install_required
+    - jenkins_plugin_cli_lookup.rc != 0
+
+- name: Restore Jenkins ownership on plugin files after bulk installation
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: jenkins
+    group: jenkins
+    recurse: true
+  loop:
+    - "{{ jenkins_home }}/plugins"
+    - "{{ jenkins_plugin_manager_cache_dir }}"
+  when: jenkins_plugin_install_required

@@ -6,9 +6,11 @@
       - curl
       - fontconfig
       - gnupg
+      - openssh-client
       - "{{ jenkins_java_package }}"
     state: present
     update_cache: true
+    cache_valid_time: 3600
 
 - name: Ensure the Jenkins apt keyrings directory exists
   ansible.builtin.file:
@@ -36,71 +38,4 @@
     name: jenkins
     state: present
     update_cache: true
-
-- name: Ensure the Jenkins init.groovy.d directory exists for bootstrap automation
-  ansible.builtin.file:
-    path: "{{ jenkins_bootstrap_admin_init_script | dirname }}"
-    state: directory
-    owner: jenkins
-    group: jenkins
-    mode: "0755"
-
-- name: Install the bootstrap admin init script before first startup
-  ansible.builtin.template:
-    src: bootstrap-admin.groovy.j2
-    dest: "{{ jenkins_bootstrap_admin_init_script }}"
-    owner: jenkins
-    group: jenkins
-    mode: "0640"
-
-- name: Ensure the systemd override directory exists before first startup
-  ansible.builtin.file:
-    path: "/etc/systemd/system/{{ jenkins_service_name }}.service.d"
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
-
-- name: Configure bootstrap Jenkins systemd override before first startup
-  ansible.builtin.template:
-    src: jenkins-override.conf.j2
-    dest: "/etc/systemd/system/{{ jenkins_service_name }}.service.d/override.conf"
-    owner: root
-    group: root
-    mode: "0644"
-  vars:
-    jenkins_casc_config_enabled: false
-
-- name: Reload systemd so the bootstrap Jenkins override is active
-  ansible.builtin.systemd_service:
-    daemon_reload: true
-
-- name: Reset failed Jenkins service state before startup
-  ansible.builtin.command: "systemctl reset-failed {{ jenkins_service_name }}"
-  changed_when: false
-  failed_when: false
-
-- name: Ensure Jenkins service is enabled and restarted for plugin installation
-  ansible.builtin.service:
-    name: "{{ jenkins_service_name }}"
-    enabled: true
-    state: restarted
-
-- name: Wait for Jenkins HTTP port before plugin installation
-  ansible.builtin.wait_for:
-    host: "{{ jenkins_wait_host }}"
-    port: "{{ jenkins_http_port }}"
-    timeout: "{{ jenkins_wait_timeout }}"
-    delay: 5
-
-- name: Wait for the bootstrap admin account to become available
-  ansible.builtin.uri:
-    url: "{{ jenkins_local_url }}/me/api/json"
-    user: "{{ jenkins_admin_username }}"
-    password: "{{ jenkins_admin_password }}"
-    force_basic_auth: true
-    status_code: 200
-  register: jenkins_bootstrap_admin_check
-  retries: 30
-  delay: 5
-  until: jenkins_bootstrap_admin_check.status == 200
+    cache_valid_time: 3600

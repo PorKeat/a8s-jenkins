@@ -1,0 +1,145 @@
+---
+- name: Install nginx reverse proxy packages
+  ansible.builtin.apt:
+    name:
+      - nginx
+      - openssl
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Ensure the nginx sites-available directory exists
+  ansible.builtin.file:
+    path: /etc/nginx/sites-available
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Ensure the nginx sites-enabled directory exists
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Inspect the Jenkins origin certificate file
+  ansible.builtin.stat:
+    path: "{{ jenkins_reverse_proxy_tls_cert_path }}"
+  register: jenkins_origin_cert_stat
+  when: jenkins_reverse_proxy_tls_mode == 'self_signed'
+
+- name: Inspect the Jenkins origin private key file
+  ansible.builtin.stat:
+    path: "{{ jenkins_reverse_proxy_tls_key_path }}"
+  register: jenkins_origin_key_stat
+  when: jenkins_reverse_proxy_tls_mode == 'self_signed'
+
+- name: Generate a self-signed Jenkins origin certificate
+  ansible.builtin.command:
+    argv:
+      - openssl
+      - req
+      - -x509
+      - -nodes
+      - -newkey
+      - rsa:4096
+      - -days
+      - "{{ jenkins_reverse_proxy_self_signed_valid_days | string }}"
+      - -keyout
+      - "{{ jenkins_reverse_proxy_tls_key_path }}"
+      - -out
+      - "{{ jenkins_reverse_proxy_tls_cert_path }}"
+      - -subj
+      - "/CN={{ jenkins_reverse_proxy_server_name }}"
+      - -addext
+      - "subjectAltName=DNS:{{ jenkins_reverse_proxy_server_name }}"
+  when:
+    - jenkins_reverse_proxy_tls_mode == 'self_signed'
+    - not jenkins_origin_cert_stat.stat.exists or not jenkins_origin_key_stat.stat.exists
+  notify: restart nginx
+
+- name: Ensure the self-signed Jenkins origin certificate permissions are correct
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - path: "{{ jenkins_reverse_proxy_tls_cert_path }}"
+      mode: "0644"
+    - path: "{{ jenkins_reverse_proxy_tls_key_path }}"
+      mode: "0600"
+  when: jenkins_reverse_proxy_tls_mode == 'self_signed'
+
+- name: Write the provided Jenkins origin certificate
+  ansible.builtin.copy:
+    content: "{{ jenkins_reverse_proxy_provided_certificate }}"
+    dest: "{{ jenkins_reverse_proxy_tls_cert_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: jenkins_reverse_proxy_tls_mode == 'provided'
+  notify: reload nginx
+
+- name: Write the provided Jenkins origin private key
+  ansible.builtin.copy:
+    content: "{{ jenkins_reverse_proxy_provided_private_key }}"
+    dest: "{{ jenkins_reverse_proxy_tls_key_path }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: jenkins_reverse_proxy_tls_mode == 'provided'
+  notify: reload nginx
+
+- name: Remove the default nginx site symlink
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: reload nginx
+
+- name: Render the nginx site for Jenkins
+  ansible.builtin.template:
+    src: nginx-jenkins.conf.j2
+    dest: /etc/nginx/sites-available/jenkins
+    owner: root
+    group: root
+    mode: "0644"
+  notify: reload nginx
+
+- name: Enable the nginx Jenkins site
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/jenkins
+    dest: /etc/nginx/sites-enabled/jenkins
+    state: link
+    force: true
+  notify: reload nginx
+
+- name: Validate the nginx configuration
+  ansible.builtin.command: nginx -t
+  changed_when: false
+
+- name: Ensure nginx is enabled and started
+  ansible.builtin.service:
+    name: nginx
+    enabled: true
+    state: started
+
+- name: Flush nginx handlers so the public proxy is ready now
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for nginx HTTP
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: 80
+    timeout: 60
+    delay: 1
+
+- name: Wait for nginx HTTPS
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: 443
+    timeout: 60
+    delay: 1
+  when: jenkins_reverse_proxy_tls_mode != 'disabled'

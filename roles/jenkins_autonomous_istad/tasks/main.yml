@@ -12,6 +12,10 @@
   ansible.builtin.import_tasks: plugins.yml
   when: jenkins_state == 'present'
 
+- name: Prepare Jenkins controller SSH assets for managed agents
+  ansible.builtin.import_tasks: agents.yml
+  when: jenkins_state == 'present'
+
 - name: Apply Jenkins Configuration as Code
   ansible.builtin.import_tasks: jcasc.yml
   when: jenkins_state == 'present'
@@ -19,6 +23,12 @@
 - name: Configure Jenkins shared libraries
   ansible.builtin.import_tasks: libraries.yml
   when: jenkins_state == 'present'
+
+- name: Configure Jenkins reverse proxy
+  ansible.builtin.import_tasks: proxy.yml
+  when:
+    - jenkins_state == 'present'
+    - jenkins_reverse_proxy_enabled | bool
 
 - name: Remove Jenkins
   ansible.builtin.import_tasks: uninstall.yml

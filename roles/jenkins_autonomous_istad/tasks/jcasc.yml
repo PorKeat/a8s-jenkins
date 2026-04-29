@@ -42,6 +42,10 @@
     - reload systemd
     - restart jenkins
 
+- name: Reset Jenkins failed service state before startup
+  ansible.builtin.command: "systemctl reset-failed {{ jenkins_service_name }}"
+  changed_when: false
+
 - name: Ensure Jenkins service is enabled and started
   ansible.builtin.service:
     name: "{{ jenkins_service_name }}"
@@ -58,18 +62,14 @@
     timeout: "{{ jenkins_wait_timeout }}"
     delay: 5
 
-- name: Remove the bootstrap admin init script after JCasC is active
-  ansible.builtin.file:
-    path: "{{ jenkins_bootstrap_admin_init_script }}"
-    state: absent
-  notify: restart jenkins
-
-- name: Flush handlers so the bootstrap admin init script is removed cleanly
-  ansible.builtin.meta: flush_handlers
-
-- name: Wait for Jenkins HTTP port after bootstrap cleanup
-  ansible.builtin.wait_for:
-    host: "{{ jenkins_wait_host }}"
-    port: "{{ jenkins_http_port }}"
-    timeout: "{{ jenkins_wait_timeout }}"
-    delay: 5
+- name: Wait for the Jenkins admin API after JCasC startup
+  ansible.builtin.uri:
+    url: "{{ jenkins_local_url }}/me/api/json"
+    user: "{{ jenkins_admin_username }}"
+    password: "{{ jenkins_admin_password }}"
+    force_basic_auth: true
+    status_code: 200
+  register: jenkins_admin_api_check
+  retries: 30
+  delay: 5
+  until: jenkins_admin_api_check.status == 200

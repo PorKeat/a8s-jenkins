@@ -19,6 +19,9 @@
 
 - name: Configure the Jenkins controller on the configured target host
   hosts: jenkins_target
+  gather_facts: true
+  gather_subset:
+    - min
   become: true
   collections:
     - community.general

@@ -1,0 +1,46 @@
+---
+- name: Ensure the Jenkins controller SSH directory exists for known_hosts based agent verification
+  ansible.builtin.file:
+    path: "{{ jenkins_home }}/.ssh"
+    state: directory
+    owner: jenkins
+    group: jenkins
+    mode: "0700"
+  when: >
+    jenkins_agents |
+    selectattr('launcher', 'defined') |
+    selectattr('launcher.type', 'defined') |
+    selectattr('launcher.type', 'equalto', 'ssh') |
+    selectattr('launcher.ssh_host_key_verification_strategy', 'defined') |
+    selectattr('launcher.ssh_host_key_verification_strategy', 'equalto', 'knownHostsFileKeyVerificationStrategy') |
+    list | length > 0
+
+- name: Scan SSH host keys for Jenkins SSH agents that use known_hosts verification
+  ansible.builtin.command:
+    argv:
+      - ssh-keyscan
+      - -H
+      - -p
+      - "{{ item.launcher.port | default(22) | string }}"
+      - "{{ item.launcher.host }}"
+  register: jenkins_agent_ssh_keyscan
+  changed_when: false
+  loop: "{{ jenkins_agents }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - item.launcher is defined
+    - item.launcher.type | default('inbound') == 'ssh'
+    - item.launcher.ssh_host_key_verification_strategy | default('nonVerifyingKeyVerificationStrategy') == 'knownHostsFileKeyVerificationStrategy'
+
+- name: Persist known_hosts entries for Jenkins SSH agents
+  ansible.builtin.lineinfile:
+    path: "{{ jenkins_home }}/.ssh/known_hosts"
+    line: "{{ item.1 }}"
+    create: true
+    owner: jenkins
+    group: jenkins
+    mode: "0600"
+  loop: "{{ (jenkins_agent_ssh_keyscan.results | default([])) | subelements('stdout_lines', skip_missing=True) }}"
+  loop_control:
+    label: "{{ item.0.item.name }}"

@@ -11,6 +11,27 @@
     path: "/etc/systemd/system/{{ jenkins_service_name }}.service.d"
     state: absent
 
+- name: Remove Jenkins nginx site symlink
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/jenkins
+    state: absent
+
+- name: Remove Jenkins nginx site definition
+  ansible.builtin.file:
+    path: /etc/nginx/sites-available/jenkins
+    state: absent
+
+- name: Remove generated self-signed Jenkins origin certificate
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ jenkins_reverse_proxy_tls_cert_path }}"
+    - "{{ jenkins_reverse_proxy_tls_key_path }}"
+  when:
+    - jenkins_reverse_proxy_enabled | bool
+    - jenkins_reverse_proxy_tls_mode == 'self_signed'
+
 - name: Remove Jenkins package
   ansible.builtin.apt:
     name: jenkins
@@ -48,3 +69,14 @@
     autoremove: true
     update_cache: true
   when: jenkins_destroy_java | bool
+
+- name: Remove nginx when requested
+  ansible.builtin.apt:
+    name: nginx
+    state: absent
+    purge: true
+    autoremove: true
+    update_cache: true
+  when:
+    - jenkins_reverse_proxy_enabled | bool
+    - jenkins_reverse_proxy_destroy_package | bool

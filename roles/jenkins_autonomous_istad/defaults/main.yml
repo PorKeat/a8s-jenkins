@@ -8,6 +8,16 @@ jenkins_url: http://127.0.0.1:8080
 jenkins_local_url: "http://127.0.0.1:{{ jenkins_http_port }}"
 jenkins_wait_host: 127.0.0.1
 jenkins_wait_timeout: 300
+jenkins_reverse_proxy_enabled: false
+jenkins_reverse_proxy_server_name: localhost
+jenkins_reverse_proxy_tls_mode: disabled
+jenkins_reverse_proxy_http_redirect_to_https: false
+jenkins_reverse_proxy_tls_cert_path: /etc/ssl/certs/jenkins-origin.crt
+jenkins_reverse_proxy_tls_key_path: /etc/ssl/private/jenkins-origin.key
+jenkins_reverse_proxy_provided_certificate: ""
+jenkins_reverse_proxy_provided_private_key: ""
+jenkins_reverse_proxy_self_signed_valid_days: 825
+jenkins_reverse_proxy_destroy_package: false
 
 jenkins_release_channel: weekly
 jenkins_java_package: openjdk-21-jre
@@ -16,13 +26,24 @@ jenkins_java_opts: "-Djenkins.install.runSetupWizard=false"
 jenkins_apt_keyring_path: /etc/apt/keyrings/jenkins-keyring.asc
 jenkins_apt_key_url: "{{ 'https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key' if jenkins_release_channel == 'lts' else 'https://pkg.jenkins.io/debian/jenkins.io-2026.key' }}"
 jenkins_apt_repository_base_url: "{{ 'https://pkg.jenkins.io/debian-stable' if jenkins_release_channel == 'lts' else 'https://pkg.jenkins.io/debian' }}"
-jenkins_bootstrap_admin_init_script: "{{ jenkins_home }}/init.groovy.d/00-bootstrap-admin.groovy"
+jenkins_plugin_manifest_path: "{{ jenkins_home }}/plugins.txt"
+jenkins_plugin_cli_command: jenkins-plugin-cli
+jenkins_plugin_manager_version: "2.14.0"
+jenkins_plugin_manager_download_url: "https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/{{ jenkins_plugin_manager_version }}/jenkins-plugin-manager-{{ jenkins_plugin_manager_version }}.jar"
+jenkins_plugin_manager_jar_path: "/usr/local/lib/jenkins-plugin-manager-{{ jenkins_plugin_manager_version }}.jar"
+jenkins_plugin_manager_cache_dir: "{{ jenkins_home }}/.cache/jenkins-plugin-management-cli"
+jenkins_plugin_manager_local_cache_path: "{{ lookup('env', 'TMPDIR') | default('/tmp', true) }}/jenkins-plugin-manager-{{ jenkins_plugin_manager_version }}.jar"
+jenkins_plugin_manager_download_timeout: 120
+jenkins_plugin_manager_download_retries: 3
+jenkins_plugin_manager_download_delay: 5
+jenkins_war_path: /usr/share/java/jenkins.war
 jenkins_destroy_data: true
 jenkins_destroy_java: false
 
 jenkins_system_message: Managed by Ansible from the autonomous-istad Jenkins setup notes.
 jenkins_controller_executors: 2
 jenkins_agent_port: 50000
+jenkins_sonar_scanner_installations: []
 
 jenkins_admin_username: admin
 jenkins_admin_password: change-me-now
@@ -73,7 +94,9 @@ jenkins_agents:
     remote_fs: /home/enz/jenkins
     description: Used by the image build, scan, and push stage in the shared deploy pipeline.
     mode: NORMAL
-    web_socket: false
+    launcher:
+      type: inbound
+      web_socket: false
 
 jenkins_manage_jobs: true
 jenkins_pipeline_jobs:
@@ -111,6 +134,8 @@ jenkins_string_credentials:
   - id: sonarqube-token
     description: SonarQube token
     secret: ""
+
+jenkins_file_credentials: []
 
 jenkins_username_password_credentials:
   - id: a8s-backend-credential

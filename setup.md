@@ -131,9 +131,7 @@ replace-me
 - Private key:
 
 ```text
------BEGIN OPENSSH PRIVATE KEY-----
-replace-me
------END OPENSSH PRIVATE KEY-----
+[redacted - store the real key only in config-secret.yml]
 ```
 
 ## Other Visible Credential IDs Referenced In Jenkins

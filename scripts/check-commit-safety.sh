@@ -19,7 +19,7 @@ if "${SEARCH_CMD[@]}" 'sqa_[A-Za-z0-9]+' ${TRACKED_FILES} >/dev/null; then
   exit 1
 fi
 
-if "${SEARCH_CMD[@]}" 'BEGIN (RSA|OPENSSH) PRIVATE KEY|MIIJ[A-Za-z0-9+/=]+' ${TRACKED_FILES} >/dev/null; then
+if "${SEARCH_CMD[@]}" 'BEGIN RSA PRIVATE KEY|MIIJ[A-Za-z0-9+/=]+|b3BlbnNzaC1rZXktdjE[A-Za-z0-9+/=]*' ${TRACKED_FILES} >/dev/null; then
   echo "Tracked files contain a live SSH private key. Move it to config-secret.yml or redact it."
   exit 1
 fi

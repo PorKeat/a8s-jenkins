@@ -46,9 +46,11 @@ pipelineJob({{ job.name | to_json }}) {
 {% endif %}
           }
           branch({{ ('*/' ~ job.branch) | to_json }})
+{% if job.clean_before_checkout | default(false) %}
           extensions {
             cleanBeforeCheckout()
           }
+{% endif %}
         }
       }
       lightweight({{ job.lightweight | default(true) | string | lower }})

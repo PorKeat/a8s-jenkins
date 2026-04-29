@@ -1,34 +1,34 @@
 ---
+# Jobs under jenkins_pipeline_jobs are created in Jenkins as:
+# Definition -> Pipeline script from SCM
+# Only jenkins_inline_pipeline_jobs use local pipeline/*.groovy files.
 jenkins_pipeline_jobs:
   - name: a8s-backend
-    description: Managed pipeline job for the a8s-backend repository.
+    description: Imported from the legacy Jenkins SCM pipeline job.
     repo_url: https://github.com/ITProfessional-Gen01/a8s-backend.git
     branch: main
     script_path: Jenkinsfile
     credential_id: a8s-backend-credential
     github_push: true
     lightweight: true
-    disable_concurrent_builds: true
   - name: a8s-frontend
-    description: Managed pipeline job for the a8s-frontend repository.
+    description: Imported from the legacy Jenkins SCM pipeline job.
     repo_url: https://github.com/ITProfessional-Gen01/a8s-frontend.git
     branch: main
     script_path: Jenkinsfile
     credential_id: a8s-frontend-credential
     github_push: true
     lightweight: true
-    disable_concurrent_builds: true
   - name: a8s-admin
-    description: Managed pipeline job for the a8s-admin repository.
+    description: Imported from the legacy Jenkins SCM pipeline job.
     repo_url: https://github.com/ITProfessional-Gen01/a8s-admin.git
     branch: main
     script_path: Jenkinsfile
     credential_id: a8s-backend-credential
     github_push: true
     lightweight: true
-    disable_concurrent_builds: true
   - name: deploy-microservices
-    description: Imported from the legacy Jenkins deploy-microservices job.
+    description: Imported from the legacy Jenkins SCM pipeline job.
     repo_url: https://github.com/Vuthy-Tourn/platform-infra-testing
     branch: main
     script_path: jenkins/Jenkinsfile-microservices
@@ -76,7 +76,7 @@ jenkins_pipeline_jobs:
         default: false
         description: Remove this microservice project from GitOps and tear down its runtime resources
   - name: deploy-service-test
-    description: Imported from the legacy Jenkins deploy-service-test job.
+    description: Imported from the legacy Jenkins SCM pipeline job.
     repo_url: https://github.com/Vuthy-Tourn/platform-infra-testing
     branch: main
     script_path: jenkins/Jenkinsfile
@@ -121,19 +121,10 @@ jenkins_pipeline_jobs:
         name: ROLLBACK_MODE
         default: false
         description: Skip build/scan/push and update GitOps with a saved image tag
-  - name: deploy-pipeliness
-    description: Imported from the legacy Jenkins deploy-pipeliness job.
-    repo_url: https://github.com/tochratana/platform-infra.git
-    branch: main
-    script_path: jenkins/Jenkinsfile
-    credential_id: infra-repo-creds
-    lightweight: true
-    build_discarder: false
-    disable_concurrent_builds: false
 
 jenkins_inline_pipeline_jobs:
   - name: deploy-pipeline
-    description: Imported from the legacy Jenkins deploy-pipeline job.
+    description: Imported from the legacy Jenkins inline pipeline job.
     pipeline_file: pipeline/deploy-pipeline.groovy
     days_to_keep: -1
     num_to_keep: 50
@@ -203,16 +194,6 @@ jenkins_inline_pipeline_jobs:
         name: DOMAIN_ONLY_UPDATE
         default: false
         description: Only update GitOps domain host (skip checkout/build/push)
-  - name: share_lib
-    description: Imported from the legacy Jenkins share_lib job.
-    pipeline_file: pipeline/share_lib.groovy
-    build_discarder: false
-    disable_concurrent_builds: false
-  - name: trivy
-    description: Imported from the legacy Jenkins trivy job.
-    pipeline_file: pipeline/trivy.groovy
-    build_discarder: false
-    disable_concurrent_builds: false
 
 jenkins_placeholder_jobs: []
 

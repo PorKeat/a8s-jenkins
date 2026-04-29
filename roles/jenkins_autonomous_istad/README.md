@@ -15,7 +15,7 @@ The role installs Jenkins on Debian/Ubuntu, installs the plugins called out in t
 - The three application pipeline jobs are created from the exact repositories and branches documented in the notes.
 - The tracked config now uses the public Jenkins URL `https://jenkins.autonomous-istad.com`.
 - The install defaults follow the current official Jenkins Debian/Ubuntu guidance with Java 21 and the 2026 package signing key.
-- Jenkins job definitions now live in `pipeline/jobs.yml`, and inline pipeline scripts live in `pipeline/*.groovy` so they are easy to edit later.
+- Jenkins job definitions now live in `pipeline/jobs.yml`. SCM-backed jobs stay there as repository metadata, while only inline jobs use `pipeline/*.groovy`.
 
 ## Requirements
 
@@ -34,7 +34,7 @@ Ready-to-run project files are also included at the repository root:
 - `config-secret.yml` is a gitignored local override for credentials and live secrets
 - `config-secret-example.yml` is the tracked starter file for other users
 - `pipeline/jobs.yml` contains Jenkins job and shared-library definitions
-- `pipeline/*.groovy` contains inline pipeline scripts that Jenkins seeds through Job DSL
+- `pipeline/*.groovy` only contains inline pipeline scripts, such as `deploy-pipeline`
 - `inventory.ini` only provides a local Ansible entrypoint; the actual Jenkins target host is read from `config.yml`
 - `site.yml` applies the role using `config.yml`, `pipeline/jobs.yml`, and then loads `config-secret.yml` when present
 - `justfile` provides two simple commands: `deploy` and `destroy`
@@ -45,8 +45,8 @@ The most important variables are:
 
 ```yaml
 jenkins_target_host: "34.87.139.220"
-jenkins_target_user: "ubuntu"
-jenkins_release_channel: "weekly"
+jenkins_target_user: "github-actions"
+jenkins_release_channel: "lts"
 jenkins_admin_username: "replace-me"
 jenkins_admin_password: "replace-me"
 jenkins_url: "https://jenkins.autonomous-istad.com"
@@ -76,7 +76,7 @@ Use `config.yml` for the target host and tracked non-secret settings, `pipeline/
 
 1. Edit `config.yml` and set `jenkins_target_host` and `jenkins_target_user` for your server.
 2. Keep `config.yml` committed with non-secret settings only.
-3. Edit `pipeline/jobs.yml` or the `pipeline/*.groovy` files if you want to change Jenkins jobs.
+3. Edit `pipeline/jobs.yml` to change SCM-backed jobs, and edit `pipeline/*.groovy` only for inline jobs.
 4. Copy `config-secret-example.yml` to `config-secret.yml`.
 5. Fill the real credentials in `config-secret.yml`.
 6. Deploy Jenkins:
@@ -108,8 +108,8 @@ just destroy
 
 - The role intentionally does not embed the live credentials from `setup.md`.
 - The tracked `config.yml` carries only non-secret settings, while `config-secret.yml` carries local live secrets.
-- Job definitions live in `pipeline/jobs.yml`, and inline Groovy for Jenkins jobs lives in `pipeline/*.groovy`.
+- Job definitions live in `pipeline/jobs.yml`. Only inline Jenkins jobs keep Groovy files under `pipeline/*.groovy`.
 - The remote server target is set in `config.yml` through `jenkins_target_host`, `jenkins_target_user`, `jenkins_target_port`, and `jenkins_target_python_interpreter`.
 - The Jenkins public URL is set to `https://jenkins.autonomous-istad.com`, but this role does not provision the reverse proxy or TLS certificate.
-- `jenkins_release_channel: weekly` installs the latest official weekly Jenkins release; set it to `lts` if you want the latest Long Term Support release instead.
+- `jenkins_release_channel: lts` installs the latest official Long Term Support Jenkins release. Switch it to `weekly` only if you explicitly want the newest weekly line.
 - `just destroy` removes the Jenkins package, repository, keyring, and Jenkins data from the target machine. It does not remove the SSH access you use to reach that machine.

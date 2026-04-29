@@ -36,5 +36,6 @@ jenkins_agents:
     mode: NORMAL
     web_socket: false
 
-# Jenkins job definitions and inline pipeline scripts live in pipeline/jobs.yml
-# and pipeline/*.groovy so they are easier to edit later.
+# Jenkins jobs are defined in pipeline/jobs.yml.
+# SCM-backed jobs keep their repository URL, branch, credentials, and script path there.
+# Only inline jobs, like deploy-pipeline, use local pipeline/*.groovy files.

@@ -102,19 +102,7 @@ jenkins_pipeline_jobs:
     github_push: true
     lightweight: true
 
-jenkins_placeholder_jobs:
-  - name: deploy-microservices
-    description: Placeholder scaffolded from setup notes.
-  - name: deploy-pipeline
-    description: Placeholder scaffolded from setup notes. Replace with the real shared deploy pipeline implementation.
-  - name: deploy-pipeliness
-    description: Placeholder scaffolded from setup notes.
-  - name: deploy-service-test
-    description: Placeholder scaffolded from setup notes.
-  - name: share_lib
-    description: Placeholder scaffolded from setup notes.
-  - name: trivy
-    description: Placeholder scaffolded from setup notes.
+jenkins_placeholder_jobs: []
 
 jenkins_inline_pipeline_jobs: []
 jenkins_shared_libraries: []

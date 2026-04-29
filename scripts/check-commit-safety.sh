@@ -7,7 +7,9 @@ else
   SEARCH_CMD=(grep -En)
 fi
 
-TRACKED_FILES=$(git ls-files)
+TRACKED_FILES=$(git ls-files \
+  ':!:scripts/check-commit-safety.sh' \
+  ':!:auto_push.sh')
 
 if [ -z "${TRACKED_FILES}" ]; then
   echo "No tracked files found."

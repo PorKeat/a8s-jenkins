@@ -15,6 +15,7 @@
     url: "{{ jenkins_local_url }}"
     url_username: "{{ jenkins_admin_username }}"
     url_password: "{{ jenkins_admin_password }}"
+    force_basic_auth: true
     with_dependencies: "{{ item.with_dependencies | default(true) }}"
     state: present
   loop: "{{ jenkins_plugins }}"

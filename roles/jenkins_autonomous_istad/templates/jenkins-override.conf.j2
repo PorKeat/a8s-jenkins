@@ -1,4 +1,6 @@
 [Service]
+{% if jenkins_casc_config_enabled | default(true) %}
 Environment="CASC_JENKINS_CONFIG={{ jenkins_home }}/casc_configs/jenkins.yaml"
+{% endif %}
 Environment="JAVA_HOME={{ jenkins_java_home }}"
 Environment="JAVA_OPTS={{ jenkins_java_opts }}"

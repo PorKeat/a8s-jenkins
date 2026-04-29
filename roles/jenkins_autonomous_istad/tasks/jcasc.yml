@@ -36,6 +36,8 @@
     owner: root
     group: root
     mode: "0644"
+  vars:
+    jenkins_casc_config_enabled: true
   notify:
     - reload systemd
     - restart jenkins

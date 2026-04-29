@@ -37,16 +37,38 @@
     state: present
     update_cache: true
 
+- name: Ensure the systemd override directory exists before first startup
+  ansible.builtin.file:
+    path: "/etc/systemd/system/{{ jenkins_service_name }}.service.d"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Configure bootstrap Jenkins systemd override before first startup
+  ansible.builtin.template:
+    src: jenkins-override.conf.j2
+    dest: "/etc/systemd/system/{{ jenkins_service_name }}.service.d/override.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  vars:
+    jenkins_casc_config_enabled: false
+
+- name: Reload systemd so the bootstrap Jenkins override is active
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
 - name: Reset failed Jenkins service state before startup
   ansible.builtin.command: "systemctl reset-failed {{ jenkins_service_name }}"
   changed_when: false
   failed_when: false
 
-- name: Ensure Jenkins service is enabled and started for plugin installation
+- name: Ensure Jenkins service is enabled and restarted for plugin installation
   ansible.builtin.service:
     name: "{{ jenkins_service_name }}"
     enabled: true
-    state: started
+    state: restarted
 
 - name: Wait for Jenkins HTTP port before plugin installation
   ansible.builtin.wait_for:

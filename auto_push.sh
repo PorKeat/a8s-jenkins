@@ -192,6 +192,25 @@ Array(secret_config["jenkins_string_credentials"]).each do |credential|
   exact_replacements << [secret_value, "replace-me"]
 end
 
+Array(secret_config["jenkins_scm_token_credentials"]).each do |credential|
+  next unless credential.is_a?(Hash)
+
+  token = credential["token"].to_s
+  next if token.empty? || token == "replace-me"
+
+  exact_replacements << [token, "replace-me"]
+end
+
+Array(secret_config["jenkins_file_credentials"]).each do |credential|
+  next unless credential.is_a?(Hash)
+
+  content = credential["content"].to_s
+  content = credential["secret_text"].to_s if content.empty?
+  next if content.empty? || content == "replace-me"
+
+  exact_replacements << [content, "replace-me"]
+end
+
 Array(secret_config["jenkins_username_password_credentials"]).each do |credential|
   next unless credential.is_a?(Hash)
 

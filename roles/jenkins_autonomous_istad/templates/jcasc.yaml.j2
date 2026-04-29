@@ -1,5 +1,6 @@
 {% set active_string_credentials = jenkins_string_credentials | rejectattr('secret', 'equalto', '') | list %}
-{% set active_file_credentials = jenkins_file_credentials | rejectattr('secret_text', 'equalto', '') | list %}
+{% set active_file_credentials = jenkins_file_credentials | selectattr('id', 'defined') | list %}
+{% set active_scm_token_credentials = jenkins_scm_token_credentials | rejectattr('token', 'equalto', '') | list %}
 {% set active_username_password_credentials = jenkins_username_password_credentials | rejectattr('username', 'equalto', '') | rejectattr('password', 'equalto', '') | list %}
 {% set active_ssh_credentials = jenkins_ssh_private_key_credentials | rejectattr('private_key', 'equalto', '') | rejectattr('private_key', 'search', 'replace-me') | list %}
 jenkins:
@@ -89,7 +90,7 @@ tool:
 {% endfor %}
 {% endif %}
 
-{% if (active_string_credentials | length) + (active_file_credentials | length) + (active_username_password_credentials | length) + (active_ssh_credentials | length) > 0 %}
+{% if (active_string_credentials | length) + (active_file_credentials | length) + (active_scm_token_credentials | length) + (active_username_password_credentials | length) + (active_ssh_credentials | length) > 0 %}
 credentials:
   system:
     domainCredentials:
@@ -106,8 +107,16 @@ credentials:
               id: {{ item.id | to_json }}
               description: {{ item.description | default('Managed by Ansible') | to_json }}
               scope: GLOBAL
-              fileName: {{ item.file_name | default(item.id) | to_json }}
-              secretBytes: {{ item.secret_text | to_json }}
+              fileName: {{ item.file_name | default('env') | to_json }}
+              secretBytes: {{ item.content | default(item.secret_text | default('replace-me')) | to_json }}
+{% endfor %}
+{% for item in active_scm_token_credentials %}
+          - usernamePassword:
+              id: {{ item.id | to_json }}
+              description: {{ item.description | default('Managed by Ansible') | to_json }}
+              scope: GLOBAL
+              username: {{ item.username | default(jenkins_scm_token_default_username) | to_json }}
+              password: {{ item.token | to_json }}
 {% endfor %}
 {% for item in active_username_password_credentials %}
           - usernamePassword:

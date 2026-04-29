@@ -11,6 +11,12 @@
       - jenkins_release_channel in ['lts', 'weekly']
     fail_msg: Set jenkins_release_channel to either 'lts' or 'weekly'.
 
+- name: Ensure the Jenkins desired state is supported
+  ansible.builtin.assert:
+    that:
+      - jenkins_state in ['present', 'absent']
+    fail_msg: Set jenkins_state to either 'present' or 'absent'.
+
 - name: Ensure the admin account variables are not left empty
   ansible.builtin.assert:
     that:
@@ -19,9 +25,11 @@
       - jenkins_admin_username != 'replace-me'
       - jenkins_admin_password != 'replace-me'
     fail_msg: Set jenkins_admin_username and jenkins_admin_password before running the role.
+  when: jenkins_state == 'present'
 
 - name: Prevent the default example password from being used
   ansible.builtin.assert:
     that:
       - jenkins_admin_password != 'change-me-now'
     fail_msg: Override jenkins_admin_password with a real secret, ideally from Ansible Vault.
+  when: jenkins_state == 'present'

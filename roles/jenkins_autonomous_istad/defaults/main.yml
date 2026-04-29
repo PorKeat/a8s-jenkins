@@ -1,5 +1,6 @@
 ---
 jenkins_install: true
+jenkins_state: present
 jenkins_service_name: jenkins
 jenkins_home: /var/lib/jenkins
 jenkins_http_port: 8080
@@ -13,6 +14,8 @@ jenkins_java_opts: "-Djenkins.install.runSetupWizard=false"
 jenkins_apt_keyring_path: /etc/apt/keyrings/jenkins-keyring.asc
 jenkins_apt_key_url: "{{ 'https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key' if jenkins_release_channel == 'lts' else 'https://pkg.jenkins.io/debian/jenkins.io-2026.key' }}"
 jenkins_apt_repository_base_url: "{{ 'https://pkg.jenkins.io/debian-stable' if jenkins_release_channel == 'lts' else 'https://pkg.jenkins.io/debian' }}"
+jenkins_destroy_data: true
+jenkins_destroy_java: false
 
 jenkins_system_message: Managed by Ansible from the autonomous-istad Jenkins setup notes.
 jenkins_controller_executors: 2

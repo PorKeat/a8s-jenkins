@@ -4,10 +4,18 @@
 
 - name: Install Jenkins
   ansible.builtin.import_tasks: install.yml
-  when: jenkins_install | bool
+  when:
+    - jenkins_state == 'present'
+    - jenkins_install | bool
 
 - name: Install Jenkins plugins
   ansible.builtin.import_tasks: plugins.yml
+  when: jenkins_state == 'present'
 
 - name: Apply Jenkins Configuration as Code
   ansible.builtin.import_tasks: jcasc.yml
+  when: jenkins_state == 'present'
+
+- name: Remove Jenkins
+  ansible.builtin.import_tasks: uninstall.yml
+  when: jenkins_state == 'absent'

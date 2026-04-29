@@ -44,7 +44,7 @@ Ready-to-run project files are also included at the repository root:
 - `config-secret-example.yml` is the tracked starter file for other users
 - `inventory.ini` only provides a local Ansible entrypoint; the actual Jenkins target host is read from `config.yml`
 - `site.yml` applies the role using `config.yml` and then loads `config-secret.yml` when present
-- `justfile` provides simple run commands
+- `justfile` provides two simple commands: `deploy` and `destroy`
 
 ## Role variables
 
@@ -85,25 +85,16 @@ Use `config.yml` for the target host and tracked non-secret settings, and keep l
 2. Keep `config.yml` committed with non-secret settings only.
 3. Copy `config-secret-example.yml` to `config-secret.yml`.
 4. Fill the real credentials in `config-secret.yml`.
-5. Install the collection:
+5. Deploy Jenkins:
 
 ```bash
-ansible-galaxy collection install -r collections/requirements.yml
+just deploy
 ```
 
-6. Run the playbook:
+6. Remove Jenkins later if needed:
 
 ```bash
-ANSIBLE_LOCAL_TEMP=/private/tmp ansible-playbook -i inventory.ini site.yml
-```
-
-Or use `just`:
-
-```bash
-just install
-just check
-just safe-config
-just apply
+just destroy
 ```
 
 ## What the role configures
@@ -126,4 +117,5 @@ just apply
 - The remote server target is set in `config.yml` through `jenkins_target_host`, `jenkins_target_user`, `jenkins_target_port`, and `jenkins_target_python_interpreter`.
 - The Jenkins public URL is set to `https://jenkins.autonomous-istad.com`, but this role does not provision the reverse proxy or TLS certificate.
 - `jenkins_release_channel: weekly` installs the latest official weekly Jenkins release; set it to `lts` if you want the latest Long Term Support release instead.
+- `just destroy` removes the Jenkins package, repository, keyring, and Jenkins data from the target machine. It does not remove the SSH access you use to reach that machine.
 - `deploy-pipeline` is scaffolded as a placeholder because the notes describe its parameters and flow, but do not include enough source-of-truth SCM details to recreate the exact job safely.

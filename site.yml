@@ -29,6 +29,9 @@
       ansible.builtin.stat:
         path: "{{ playbook_dir }}/config-secret.yml"
       register: jenkins_secret_override_file
+      delegate_to: localhost
+      become: false
+      run_once: true
 
     - name: Load local secret overrides
       ansible.builtin.include_vars:

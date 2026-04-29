@@ -1,0 +1,50 @@
+---
+- name: Stop and disable Jenkins service
+  ansible.builtin.service:
+    name: "{{ jenkins_service_name }}"
+    state: stopped
+    enabled: false
+  failed_when: false
+
+- name: Remove Jenkins systemd override
+  ansible.builtin.file:
+    path: "/etc/systemd/system/{{ jenkins_service_name }}.service.d"
+    state: absent
+
+- name: Remove Jenkins package
+  ansible.builtin.apt:
+    name: jenkins
+    state: absent
+    purge: true
+    autoremove: true
+    update_cache: true
+
+- name: Remove Jenkins apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by={{ jenkins_apt_keyring_path }}] {{ jenkins_apt_repository_base_url }} binary/"
+    filename: jenkins
+    state: absent
+    update_cache: true
+
+- name: Remove Jenkins apt keyring
+  ansible.builtin.file:
+    path: "{{ jenkins_apt_keyring_path }}"
+    state: absent
+
+- name: Remove Jenkins home and runtime data
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ jenkins_home }}"
+    - /var/cache/jenkins
+    - /var/log/jenkins
+  when: jenkins_destroy_data | bool
+
+- name: Remove Jenkins Java runtime when requested
+  ansible.builtin.apt:
+    name: "{{ jenkins_java_package }}"
+    state: absent
+    autoremove: true
+    update_cache: true
+  when: jenkins_destroy_java | bool

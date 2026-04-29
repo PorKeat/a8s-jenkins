@@ -36,43 +36,5 @@ jenkins_agents:
     mode: NORMAL
     web_socket: false
 
-# Repository-backed pipeline jobs documented in the setup notes.
-jenkins_pipeline_jobs:
-  - name: a8s-backend
-    description: Managed pipeline job for the a8s-backend repository.
-    repo_url: https://github.com/ITProfessional-Gen01/a8s-backend.git
-    branch: main
-    script_path: Jenkinsfile
-    credential_id: a8s-backend-credential
-    github_push: true
-    lightweight: true
-  - name: a8s-frontend
-    description: Managed pipeline job for the a8s-frontend repository.
-    repo_url: https://github.com/ITProfessional-Gen01/a8s-frontend.git
-    branch: main
-    script_path: Jenkinsfile
-    credential_id: a8s-frontend-credential
-    github_push: true
-    lightweight: true
-  - name: a8s-admin
-    description: Managed pipeline job for the a8s-admin repository.
-    repo_url: https://github.com/ITProfessional-Gen01/a8s-admin.git
-    branch: main
-    script_path: Jenkinsfile
-    credential_id: a8s-backend-credential
-    github_push: true
-    lightweight: true
-
-jenkins_placeholder_jobs:
-  - name: deploy-microservices
-    description: Placeholder scaffolded from setup notes.
-  - name: deploy-pipeline
-    description: Placeholder scaffolded from setup notes. Replace with the real shared deploy pipeline implementation.
-  - name: deploy-pipeliness
-    description: Placeholder scaffolded from setup notes.
-  - name: deploy-service-test
-    description: Placeholder scaffolded from setup notes.
-  - name: share_lib
-    description: Placeholder scaffolded from setup notes.
-  - name: trivy
-    description: Placeholder scaffolded from setup notes.
+# Jenkins job definitions and inline pipeline scripts live in pipeline/jobs.yml
+# and pipeline/*.groovy so they are easier to edit later.

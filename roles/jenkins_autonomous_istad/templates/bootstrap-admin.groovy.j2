@@ -1,0 +1,30 @@
+import hudson.model.User
+import hudson.security.FullControlOnceLoggedInAuthorizationStrategy
+import hudson.security.HudsonPrivateSecurityRealm
+import jenkins.model.Jenkins
+
+def instance = Jenkins.get()
+def adminUsername = {{ jenkins_admin_username | to_json }}
+def adminPassword = {{ jenkins_admin_password | to_json }}
+def adminFullName = {{ jenkins_admin_full_name | default('Jenkins Admin') | to_json }}
+
+def securityRealm = instance.getSecurityRealm()
+if (!(securityRealm instanceof HudsonPrivateSecurityRealm)) {
+    securityRealm = new HudsonPrivateSecurityRealm(false)
+    instance.setSecurityRealm(securityRealm)
+}
+
+if (User.getById(adminUsername, false) == null) {
+    securityRealm.createAccount(adminUsername, adminPassword)
+}
+
+def adminUser = User.getById(adminUsername, false)
+if (adminUser != null && adminFullName?.trim()) {
+    adminUser.setFullName(adminFullName)
+    adminUser.save()
+}
+
+def authorizationStrategy = new FullControlOnceLoggedInAuthorizationStrategy()
+authorizationStrategy.setAllowAnonymousRead(false)
+instance.setAuthorizationStrategy(authorizationStrategy)
+instance.save()

@@ -37,6 +37,22 @@
     state: present
     update_cache: true
 
+- name: Ensure the Jenkins init.groovy.d directory exists for bootstrap automation
+  ansible.builtin.file:
+    path: "{{ jenkins_bootstrap_admin_init_script | dirname }}"
+    state: directory
+    owner: jenkins
+    group: jenkins
+    mode: "0755"
+
+- name: Install the bootstrap admin init script before first startup
+  ansible.builtin.template:
+    src: bootstrap-admin.groovy.j2
+    dest: "{{ jenkins_bootstrap_admin_init_script }}"
+    owner: jenkins
+    group: jenkins
+    mode: "0640"
+
 - name: Ensure the systemd override directory exists before first startup
   ansible.builtin.file:
     path: "/etc/systemd/system/{{ jenkins_service_name }}.service.d"
@@ -76,3 +92,15 @@
     port: "{{ jenkins_http_port }}"
     timeout: "{{ jenkins_wait_timeout }}"
     delay: 5
+
+- name: Wait for the bootstrap admin account to become available
+  ansible.builtin.uri:
+    url: "{{ jenkins_local_url }}/me/api/json"
+    user: "{{ jenkins_admin_username }}"
+    password: "{{ jenkins_admin_password }}"
+    force_basic_auth: true
+    status_code: 200
+  register: jenkins_bootstrap_admin_check
+  retries: 30
+  delay: 5
+  until: jenkins_bootstrap_admin_check.status == 200

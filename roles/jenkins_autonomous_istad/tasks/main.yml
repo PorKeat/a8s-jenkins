@@ -16,6 +16,10 @@
   ansible.builtin.import_tasks: jcasc.yml
   when: jenkins_state == 'present'
 
+- name: Configure Jenkins shared libraries
+  ansible.builtin.import_tasks: libraries.yml
+  when: jenkins_state == 'present'
+
 - name: Remove Jenkins
   ansible.builtin.import_tasks: uninstall.yml
   when: jenkins_state == 'absent'

@@ -16,6 +16,7 @@ jenkins_java_opts: "-Djenkins.install.runSetupWizard=false"
 jenkins_apt_keyring_path: /etc/apt/keyrings/jenkins-keyring.asc
 jenkins_apt_key_url: "{{ 'https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key' if jenkins_release_channel == 'lts' else 'https://pkg.jenkins.io/debian/jenkins.io-2026.key' }}"
 jenkins_apt_repository_base_url: "{{ 'https://pkg.jenkins.io/debian-stable' if jenkins_release_channel == 'lts' else 'https://pkg.jenkins.io/debian' }}"
+jenkins_bootstrap_admin_init_script: "{{ jenkins_home }}/init.groovy.d/00-bootstrap-admin.groovy"
 jenkins_destroy_data: true
 jenkins_destroy_java: false
 
@@ -114,6 +115,9 @@ jenkins_placeholder_jobs:
     description: Placeholder scaffolded from setup notes.
   - name: trivy
     description: Placeholder scaffolded from setup notes.
+
+jenkins_inline_pipeline_jobs: []
+jenkins_shared_libraries: []
 
 jenkins_string_credentials:
   - id: sonarqube-token

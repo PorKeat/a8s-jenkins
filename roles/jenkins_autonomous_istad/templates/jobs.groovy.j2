@@ -1,14 +1,35 @@
+{% macro render_parameters(parameters) -%}
+parameters {
+{% for parameter in parameters %}
+{% if parameter.type == 'boolean' %}
+  booleanParam({{ parameter.name | to_json }}, {{ parameter.default | default(false) | string | lower }}, {{ parameter.description | default('') | to_json }})
+{% else %}
+  stringParam({{ parameter.name | to_json }}, {{ parameter.default | default('') | to_json }}, {{ parameter.description | default('') | to_json }})
+{% endif %}
+{% endfor %}
+}
+{%- endmacro %}
+
 {% for job in jenkins_pipeline_jobs %}
 pipelineJob({{ job.name | to_json }}) {
   description({{ job.description | default('Managed by Ansible.') | to_json }})
   disabled({{ job.disabled | default(false) | string | lower }})
+{% if job.build_discarder | default(true) %}
   logRotator {
     daysToKeep({{ job.days_to_keep | default(30) }})
     numToKeep({{ job.num_to_keep | default(20) }})
   }
+{% endif %}
+{% if job.disable_concurrent_builds | default(false) or (job.parameters is defined and job.parameters | length > 0) %}
   properties {
+{% if job.disable_concurrent_builds | default(false) %}
     disableConcurrentBuilds()
+{% endif %}
+{% if job.parameters is defined and job.parameters | length > 0 %}
+{{ render_parameters(job.parameters) | indent(4, true) }}
+{% endif %}
   }
+{% endif %}
 {% if job.github_push | default(false) %}
   triggers {
     githubPush()
@@ -20,7 +41,9 @@ pipelineJob({{ job.name | to_json }}) {
         git {
           remote {
             url({{ job.repo_url | to_json }})
+{% if job.credential_id is defined and job.credential_id %}
             credentials({{ job.credential_id | to_json }})
+{% endif %}
           }
           branch({{ ('*/' ~ job.branch) | to_json }})
           extensions {
@@ -35,14 +58,45 @@ pipelineJob({{ job.name | to_json }}) {
 }
 
 {% endfor %}
-{% for job in jenkins_placeholder_jobs %}
+{% for job in jenkins_inline_pipeline_jobs %}
+{% if job.pipeline_file is defined %}
+{% set inline_script = lookup('file', playbook_dir ~ '/' ~ job.pipeline_file) %}
+{% else %}
+{% set inline_script = lookup('template', job.script_template) %}
+{% endif %}
 pipelineJob({{ job.name | to_json }}) {
-  description({{ job.description | default('Placeholder scaffolded from setup notes.') | to_json }})
-  disabled(true)
+  description({{ job.description | default('Managed by Ansible.') | to_json }})
+  disabled({{ job.disabled | default(false) | string | lower }})
+{% if job.build_discarder | default(true) %}
+  logRotator {
+    daysToKeep({{ job.days_to_keep | default(30) }})
+    numToKeep({{ job.num_to_keep | default(20) }})
+  }
+{% endif %}
+{% if job.disable_concurrent_builds | default(false) or (job.parameters is defined and job.parameters | length > 0) %}
+  properties {
+{% if job.disable_concurrent_builds | default(false) %}
+    disableConcurrentBuilds()
+{% endif %}
+{% if job.parameters is defined and job.parameters | length > 0 %}
+{{ render_parameters(job.parameters) | indent(4, true) }}
+{% endif %}
+  }
+{% endif %}
   definition {
     cps {
+{% if job.sandbox | default(true) %}
       sandbox()
-      script('''pipeline {
+{% endif %}
+      script({{ inline_script | to_json }})
+    }
+  }
+}
+
+{% endfor %}
+{% for job in jenkins_placeholder_jobs %}
+{% set placeholder_script -%}
+pipeline {
   agent any
   stages {
     stage('Placeholder') {
@@ -51,7 +105,15 @@ pipelineJob({{ job.name | to_json }}) {
       }
     }
   }
-}''')
+}
+{%- endset %}
+pipelineJob({{ job.name | to_json }}) {
+  description({{ job.description | default('Placeholder scaffolded from setup notes.') | to_json }})
+  disabled(true)
+  definition {
+    cps {
+      sandbox()
+      script({{ placeholder_script | to_json }})
     }
   }
 }

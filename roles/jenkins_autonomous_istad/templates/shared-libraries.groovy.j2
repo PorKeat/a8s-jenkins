@@ -1,0 +1,57 @@
+import jenkins.model.Jenkins
+import jenkins.plugins.git.GitSCMSource
+import jenkins.plugins.git.traits.BranchDiscoveryTrait
+import org.jenkinsci.plugins.workflow.libs.GlobalLibraries
+import org.jenkinsci.plugins.workflow.libs.LibraryConfiguration
+import org.jenkinsci.plugins.workflow.libs.SCMSourceRetriever
+
+def desiredLibraries = []
+{% for lib in jenkins_shared_libraries %}
+def scm{{ loop.index }} = new GitSCMSource(
+    "{{ lib.name }}",
+    {{ lib.remote | to_json }},
+    {% if lib.credentials_id is defined and lib.credentials_id %}{{ lib.credentials_id | to_json }}{% else %}null{% endif %},
+    {{ lib.remote_name | default('origin') | to_json }},
+    {{ lib.raw_refspecs | default('+refs/heads/*:refs/remotes/origin/*') | to_json }},
+    {{ lib.includes | default('*') | to_json }},
+    {{ lib.excludes | default('') | to_json }},
+    false
+)
+scm{{ loop.index }}.traits = [new BranchDiscoveryTrait()]
+
+def library{{ loop.index }} = new LibraryConfiguration({{ lib.name | to_json }}, new SCMSourceRetriever(scm{{ loop.index }}))
+library{{ loop.index }}.defaultVersion = {{ lib.default_version | to_json }}
+library{{ loop.index }}.implicit = {{ lib.implicit | default(false) | string | lower }}
+library{{ loop.index }}.allowVersionOverride = {{ lib.allow_version_override | default(true) | string | lower }}
+library{{ loop.index }}.includeInChangesets = {{ lib.include_in_changesets | default(true) | string | lower }}
+desiredLibraries << library{{ loop.index }}
+{% endfor %}
+
+def globalLibraries = GlobalLibraries.get()
+def currentLibraries = globalLibraries.libraries ?: []
+def currentByName = currentLibraries.collectEntries { [(it.name): it] }
+
+def same = currentLibraries.size() == desiredLibraries.size() && desiredLibraries.every { desired ->
+    def current = currentByName[desired.name]
+    current &&
+    current.defaultVersion == desired.defaultVersion &&
+    current.implicit == desired.implicit &&
+    current.allowVersionOverride == desired.allowVersionOverride &&
+    current.includeInChangesets == desired.includeInChangesets &&
+    current.retriever?.scm?.remote == desired.retriever?.scm?.remote &&
+    (current.retriever?.scm?.credentialsId ?: '') == (desired.retriever?.scm?.credentialsId ?: '') &&
+    (current.retriever?.scm?.remoteName ?: '') == (desired.retriever?.scm?.remoteName ?: '') &&
+    (current.retriever?.scm?.rawRefSpecs ?: '') == (desired.retriever?.scm?.rawRefSpecs ?: '') &&
+    (current.retriever?.scm?.includes ?: '') == (desired.retriever?.scm?.includes ?: '') &&
+    (current.retriever?.scm?.excludes ?: '') == (desired.retriever?.scm?.excludes ?: '')
+}
+
+if (same) {
+    println('UNCHANGED')
+    return
+}
+
+globalLibraries.libraries = desiredLibraries
+globalLibraries.save()
+Jenkins.get().save()
+println('CHANGED')

@@ -1,0 +1,10 @@
+---
+- name: Configure Jenkins shared libraries
+  community.general.jenkins_script:
+    script: "{{ lookup('template', 'shared-libraries.groovy.j2') }}"
+    url: "{{ jenkins_local_url }}"
+    user: "{{ jenkins_admin_username }}"
+    password: "{{ jenkins_admin_password }}"
+  register: jenkins_shared_libraries_configuration
+  changed_when: "'CHANGED' in jenkins_shared_libraries_configuration.output"
+  when: jenkins_shared_libraries | length > 0

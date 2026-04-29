@@ -7,6 +7,27 @@
     group: jenkins
     mode: "0755"
 
+- name: Discover plugin archives already present on disk
+  ansible.builtin.find:
+    paths: "{{ jenkins_home }}/plugins"
+    patterns:
+      - "*.jpi"
+      - "*.hpi"
+    recurse: false
+    file_type: file
+  register: jenkins_existing_plugin_archives
+
+- name: Build the installed plugin name list
+  ansible.builtin.set_fact:
+    jenkins_installed_plugin_names: >-
+      {{
+        jenkins_existing_plugin_archives.files
+        | map(attribute='path')
+        | map('basename')
+        | map('regex_replace', '\\.(jpi|hpi)$', '')
+        | list
+      }}
+
 - name: Install required Jenkins plugins
   community.general.jenkins_plugin:
     name: "{{ item.name }}"
@@ -19,4 +40,5 @@
     with_dependencies: "{{ item.with_dependencies | default(true) }}"
     state: present
   loop: "{{ jenkins_plugins }}"
+  when: item.name not in jenkins_installed_plugin_names
   notify: restart jenkins

@@ -24,6 +24,7 @@
     - community.general
   vars_files:
     - config.yml
+    - pipeline/jobs.yml
   pre_tasks:
     - name: Check whether a local secret override file exists
       ansible.builtin.stat:

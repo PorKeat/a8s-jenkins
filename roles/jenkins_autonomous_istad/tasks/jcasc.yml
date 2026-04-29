@@ -57,3 +57,19 @@
     port: "{{ jenkins_http_port }}"
     timeout: "{{ jenkins_wait_timeout }}"
     delay: 5
+
+- name: Remove the bootstrap admin init script after JCasC is active
+  ansible.builtin.file:
+    path: "{{ jenkins_bootstrap_admin_init_script }}"
+    state: absent
+  notify: restart jenkins
+
+- name: Flush handlers so the bootstrap admin init script is removed cleanly
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for Jenkins HTTP port after bootstrap cleanup
+  ansible.builtin.wait_for:
+    host: "{{ jenkins_wait_host }}"
+    port: "{{ jenkins_http_port }}"
+    timeout: "{{ jenkins_wait_timeout }}"
+    delay: 5

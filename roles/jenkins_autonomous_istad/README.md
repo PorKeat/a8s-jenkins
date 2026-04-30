@@ -101,6 +101,7 @@ just destroy
 
 - Jenkins package, service, and Java
 - Official Jenkins Debian/Ubuntu package installation using Java 21
+- `yq` installed on the controller at `/usr/local/bin/yq` for pipelines that need it
 - Bulk offline plugin installation with `jenkins-plugin-cli` when available, or the official Jenkins plugin manager jar as a fallback
 - Jenkins Configuration as Code
 - Confirmed plugins from the notes, plus the additional live plugins required by the current pipelines such as `timestamper` and `ws-cleanup`

@@ -39,3 +39,19 @@
     state: present
     update_cache: true
     cache_valid_time: 3600
+
+- name: Check whether yq is already installed
+  ansible.builtin.stat:
+    path: "{{ jenkins_yq_binary_path }}"
+  register: jenkins_yq_binary_stat
+  when: jenkins_install_yq | bool
+
+- name: Install yq for Jenkins pipelines
+  ansible.builtin.get_url:
+    url: "{{ jenkins_yq_download_url }}"
+    dest: "{{ jenkins_yq_binary_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+  when: jenkins_install_yq | bool
+    and not jenkins_yq_binary_stat.stat.exists

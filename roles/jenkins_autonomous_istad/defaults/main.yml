@@ -45,8 +45,8 @@ jenkins_controller_executors: 2
 jenkins_agent_port: 50000
 jenkins_sonar_scanner_installations: []
 
-jenkins_admin_username: admin
-jenkins_admin_password: change-me-now
+jenkins_admin_username: "replace-me"
+jenkins_admin_password: "replace-me"
 jenkins_admin_full_name: Jenkins Admin
 jenkins_admin_email: jenkins@example.com
 

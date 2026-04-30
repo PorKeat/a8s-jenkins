@@ -5,8 +5,8 @@ Sensitive document. This file contains live credentials and private key material
 ## Jenkins Access
 
 - URL: `https://jenkins.autonomous-istad.com/`
-- Login username: `a8s`
-- Login password: `a8s`
+- Login username: `replace-me`
+- Login password: `replace-me`
 
 ## Main Jobs
 

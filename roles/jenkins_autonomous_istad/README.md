@@ -34,6 +34,7 @@ Ready-to-run project files are also included at the repository root:
 - `config.yml` contains the target host plus tracked non-secret controller and node settings
 - `config-secret.yml` is a gitignored local override for credentials and live secrets
 - `config-secret-example.yml` is the tracked starter file for other users
+- Any credential value left as `replace-me` stays in the local config file, but is skipped by JCasC and will not overwrite a manually managed Jenkins credential
 - `pipeline/jobs.yml` contains Jenkins job and shared-library definitions
 - `pipeline/*.groovy` only contains inline pipeline scripts, such as `deploy-pipeline`
 - `inventory.ini` only provides a local Ansible entrypoint; the actual Jenkins target host is read from `config.yml`

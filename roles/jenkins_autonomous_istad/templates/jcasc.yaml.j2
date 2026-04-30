@@ -1,8 +1,47 @@
-{% set active_string_credentials = jenkins_string_credentials | rejectattr('secret', 'equalto', '') | list %}
-{% set active_file_credentials = jenkins_file_credentials | selectattr('id', 'defined') | list %}
-{% set active_scm_token_credentials = jenkins_scm_token_credentials | rejectattr('token', 'equalto', '') | list %}
-{% set active_username_password_credentials = jenkins_username_password_credentials | rejectattr('username', 'equalto', '') | rejectattr('password', 'equalto', '') | list %}
-{% set active_ssh_credentials = jenkins_ssh_private_key_credentials | rejectattr('private_key', 'equalto', '') | rejectattr('private_key', 'search', 'replace-me') | list %}
+{% set ns = namespace(
+  active_string_credentials=[],
+  active_file_credentials=[],
+  active_scm_token_credentials=[],
+  active_username_password_credentials=[],
+  active_ssh_credentials=[]
+) %}
+{% for item in jenkins_string_credentials %}
+{% set secret_value = item.secret | default('') | string | trim %}
+{% if secret_value and secret_value != 'replace-me' %}
+{% set ns.active_string_credentials = ns.active_string_credentials + [item] %}
+{% endif %}
+{% endfor %}
+{% for item in jenkins_file_credentials %}
+{% set file_content = item.content | default(item.secret_text | default('')) | string | trim %}
+{% if file_content and file_content != 'replace-me' %}
+{% set ns.active_file_credentials = ns.active_file_credentials + [item] %}
+{% endif %}
+{% endfor %}
+{% for item in jenkins_scm_token_credentials %}
+{% set scm_token = item.token | default('') | string | trim %}
+{% set scm_username = item.username | default(jenkins_scm_token_default_username) | string | trim %}
+{% if scm_token and scm_token != 'replace-me' and scm_username and scm_username != 'replace-me' %}
+{% set ns.active_scm_token_credentials = ns.active_scm_token_credentials + [item] %}
+{% endif %}
+{% endfor %}
+{% for item in jenkins_username_password_credentials %}
+{% set username_value = item.username | default('') | string | trim %}
+{% set password_value = item.password | default('') | string | trim %}
+{% if username_value and username_value != 'replace-me' and password_value and password_value != 'replace-me' %}
+{% set ns.active_username_password_credentials = ns.active_username_password_credentials + [item] %}
+{% endif %}
+{% endfor %}
+{% for item in jenkins_ssh_private_key_credentials %}
+{% set private_key_value = item.private_key | default('') | string | trim %}
+{% if private_key_value and 'replace-me' not in private_key_value %}
+{% set ns.active_ssh_credentials = ns.active_ssh_credentials + [item] %}
+{% endif %}
+{% endfor %}
+{% set active_string_credentials = ns.active_string_credentials %}
+{% set active_file_credentials = ns.active_file_credentials %}
+{% set active_scm_token_credentials = ns.active_scm_token_credentials %}
+{% set active_username_password_credentials = ns.active_username_password_credentials %}
+{% set active_ssh_credentials = ns.active_ssh_credentials %}
 jenkins:
   systemMessage: {{ jenkins_system_message | to_json }}
   mode: NORMAL

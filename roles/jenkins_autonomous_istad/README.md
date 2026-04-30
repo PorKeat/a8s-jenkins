@@ -34,7 +34,7 @@ Ready-to-run project files are also included at the repository root:
 - `config.yml` contains the target host plus tracked non-secret controller and node settings
 - `config-secret.yml` is a gitignored local override for credentials and live secrets
 - `config-secret-example.yml` is the tracked starter file for other users
-- Any credential value left as `replace-me` stays in the local config file, but is skipped by JCasC and will not overwrite a manually managed Jenkins credential
+- Any credential value left as `replace-me` stays in the local config file, but is skipped by the credential seeding step and will not overwrite a manually managed Jenkins credential
 - `pipeline/jobs.yml` contains Jenkins job and shared-library definitions
 - `pipeline/*.groovy` only contains inline pipeline scripts, such as `deploy-pipeline`
 - `inventory.ini` only provides a local Ansible entrypoint; the actual Jenkins target host is read from `config.yml`
@@ -116,6 +116,7 @@ just destroy
 
 - The role intentionally does not embed the live credentials from `setup.md`.
 - The tracked `config.yml` carries only non-secret settings, while `config-secret.yml` carries local live secrets.
+- Credentials are seeded into Jenkins after startup. Existing Jenkins credentials are preserved by default, but placeholder values, empty values, and wrong credential types are corrected automatically. Set `jenkins_credentials_overwrite_existing: true` only when you explicitly want the repo values to replace every existing credential with the same ID.
 - Job definitions live in `pipeline/jobs.yml`. Only inline Jenkins jobs keep Groovy files under `pipeline/*.groovy`.
 - The remote server target is set in `config.yml` through `jenkins_target_host`, `jenkins_target_user`, `jenkins_target_port`, and `jenkins_target_python_interpreter`.
 - The tracked config enables nginx with `jenkins_reverse_proxy_tls_mode: self_signed`. That is enough for Cloudflare `Full` mode, but switch to `provided` and store a real origin certificate in `config-secret.yml` if you want Cloudflare `Full (strict)`.

@@ -194,6 +194,12 @@ jenkins_inline_pipeline_jobs:
         name: DOMAIN_ONLY_UPDATE
         default: false
         description: Only update GitOps domain host (skip checkout/build/push)
+  - name: check-credentials
+    description: Helper pipeline to show the current Jenkins credential values or placeholders.
+    pipeline_file: pipeline/check-credentials.groovy
+    days_to_keep: -1
+    num_to_keep: 20
+    disable_concurrent_builds: true
 
 jenkins_placeholder_jobs: []
 

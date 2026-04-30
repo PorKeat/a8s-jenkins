@@ -20,6 +20,10 @@
   ansible.builtin.import_tasks: jcasc.yml
   when: jenkins_state == 'present'
 
+- name: Seed Jenkins credentials without overwriting manual values
+  ansible.builtin.import_tasks: credentials.yml
+  when: jenkins_state == 'present'
+
 - name: Configure Jenkins shared libraries
   ansible.builtin.import_tasks: libraries.yml
   when: jenkins_state == 'present'

@@ -118,10 +118,20 @@ trap cleanup EXIT
 
 echo "Preparing temporary push clone at $TMP_DIR"
 git clone --quiet "$ROOT_DIR" "$TMP_DIR"
-git -C "$TMP_DIR" checkout --quiet "$TARGET_BRANCH"
 
 if [[ -n "$REMOTE_URL" ]]; then
   git -C "$TMP_DIR" remote set-url origin "$REMOTE_URL"
+fi
+
+if [[ -n "$REMOTE_URL" ]]; then
+  git -C "$TMP_DIR" fetch --quiet origin "$TARGET_BRANCH" || true
+  if git -C "$TMP_DIR" show-ref --verify --quiet "refs/remotes/origin/$TARGET_BRANCH"; then
+    git -C "$TMP_DIR" checkout --quiet -B "$TARGET_BRANCH" "origin/$TARGET_BRANCH"
+  else
+    git -C "$TMP_DIR" checkout --quiet "$TARGET_BRANCH"
+  fi
+else
+  git -C "$TMP_DIR" checkout --quiet "$TARGET_BRANCH"
 fi
 
 echo "Copying current working tree into the temporary clone"
@@ -274,6 +284,9 @@ echo "Committing sanitized snapshot"
 git -C "$TMP_DIR" commit -m "$COMMIT_MESSAGE"
 
 echo "Pushing sanitized snapshot to origin/$TARGET_BRANCH"
-git -C "$TMP_DIR" push origin "HEAD:$TARGET_BRANCH"
+if ! git -C "$TMP_DIR" push origin "HEAD:$TARGET_BRANCH"; then
+  echo "Push failed. The remote branch moved again while pushing. Pull/re-run to rebase on the latest remote state." >&2
+  exit 1
+fi
 
 echo "Push completed. Local files were not changed."

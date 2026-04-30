@@ -138,6 +138,7 @@ jenkins_string_credentials:
 jenkins_file_credentials: []
 jenkins_scm_token_default_username: replace-me
 jenkins_scm_token_credentials: []
+jenkins_credentials_overwrite_existing: false
 
 jenkins_username_password_credentials:
   - id: a8s-backend-credential

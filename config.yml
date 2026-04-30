@@ -35,7 +35,8 @@ jenkins_sonar_scanner_installations:
   - name: sonar-scanner
     installer_id: "8.1.0.6389"
 
-# Top-level plugins pinned to the legacy Jenkins versions.
+# Top-level plugins pinned close to the legacy Jenkins baseline, with
+# security overrides applied when legacy versions are vulnerable.
 # Jenkins will still install many additional dependency plugins automatically.
 jenkins_plugins:
   - name: ant
@@ -47,7 +48,7 @@ jenkins_plugins:
   - name: credentials
     version: "1502.v5c95e620ddfe"
   - name: credentials-binding
-    version: "719.v80e905ef14eb_"
+    version: "720.v3f6decef43ea_"
   - name: dark-theme
     version: "652.vea_da_dfea_e769"
   - name: email-ext
@@ -57,11 +58,11 @@ jenkins_plugins:
   - name: git-client
     version: "6.6.0"
   - name: github
-    version: "1.46.0"
+    version: "1.46.0.1"
   - name: github-api
     version: "1.330-492.v3941a_032db_2a_"
   - name: github-branch-source
-    version: "1967.vdea_d580c1a_b_a_"
+    version: "1967.1969.v205fd594c821"
   - name: gradle
     version: "2.19.1244.v1f9866817fec"
   - name: job-dsl
@@ -69,7 +70,9 @@ jenkins_plugins:
   - name: ldap
     version: "807.v7d7de30930cf"
   - name: matrix-auth
-    version: "3.2.9"
+    version: "3.2.10"
+  - name: script-security
+    version: "1402.v94c9ce464861"
   - name: matrix-project
     version: "870.v9db_fcfc2f45b_"
   - name: pipeline-build-step
@@ -122,7 +125,3 @@ jenkins_agents:
       launch_timeout_seconds: 60
       max_num_retries: 10
       retry_wait_time: 15
-
-# Jenkins jobs are defined in pipeline/jobs.yml.
-# SCM-backed jobs keep their repository URL, branch, credentials, and script path there.
-# Only inline jobs, like deploy-pipeline, use local pipeline/*.groovy files.

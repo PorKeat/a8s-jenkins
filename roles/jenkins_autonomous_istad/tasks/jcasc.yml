@@ -7,11 +7,6 @@
     group: jenkins
     mode: "0750"
 
-- name: Render Job DSL into an Ansible fact
-  ansible.builtin.set_fact:
-    jenkins_job_dsl_script: "{{ lookup('template', 'jobs.groovy.j2') }}"
-  when: jenkins_manage_jobs | bool
-
 - name: Render Jenkins Configuration as Code
   ansible.builtin.template:
     src: jcasc.yaml.j2

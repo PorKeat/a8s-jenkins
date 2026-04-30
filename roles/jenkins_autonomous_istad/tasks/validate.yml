@@ -65,6 +65,20 @@
       }}
   when: jenkins_state == 'present'
 
+- name: Ensure SCM token credentials have a real Git username
+  ansible.builtin.assert:
+    that:
+      - (item.username | default(jenkins_scm_token_default_username) | string | trim | length) > 0
+      - (item.username | default(jenkins_scm_token_default_username) | string | trim) != 'replace-me'
+    fail_msg: >-
+      Set a real Git username for SCM token credential '{{ item.id }}' either in the
+      credential entry itself or via jenkins_scm_token_default_username in config-secret.yml.
+  loop: "{{ jenkins_scm_token_credentials }}"
+  when:
+    - jenkins_state == 'present'
+    - (item.token | default('') | string | trim | length) > 0
+    - (item.token | default('') | string | trim) != 'replace-me'
+
 - name: Ensure SSH-launched Jenkins agents reference a real private key credential
   ansible.builtin.assert:
     that:

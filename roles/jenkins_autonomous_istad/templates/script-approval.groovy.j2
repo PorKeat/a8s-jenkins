@@ -1,0 +1,33 @@
+import java.nio.charset.StandardCharsets
+import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval
+import org.jenkinsci.plugins.scriptsecurity.scripts.languages.GroovyLanguage
+
+def approval = ScriptApproval.get()
+def language = GroovyLanguage.get()
+def changed = false
+
+def approveScript = { String encodedScript ->
+    def scriptText = new String(encodedScript.decodeBase64(), StandardCharsets.UTF_8)
+    if (!approval.isScriptApproved(scriptText, language)) {
+        approval.preapprove(scriptText, language)
+        changed = true
+    }
+}
+
+{% for job in jenkins_inline_pipeline_jobs %}
+{% if job.sandbox is defined and not job.sandbox %}
+{% if job.pipeline_file is defined %}
+{% set inline_script = lookup('file', playbook_dir ~ '/' ~ job.pipeline_file) %}
+{% else %}
+{% set inline_script = lookup('template', job.script_template) %}
+{% endif %}
+approveScript({{ (inline_script | b64encode) | to_json }})
+{% endif %}
+{% endfor %}
+
+if (changed) {
+    approval.save()
+    println('CHANGED')
+} else {
+    println('UNCHANGED')
+}

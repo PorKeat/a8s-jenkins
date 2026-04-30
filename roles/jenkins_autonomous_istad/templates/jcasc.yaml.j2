@@ -84,9 +84,3 @@ tool:
 {% endif %}
 {% endfor %}
 {% endif %}
-
-{% if jenkins_manage_jobs | bool %}
-jobs:
-  - script: |
-{{ jenkins_job_dsl_script | indent(6, true) }}
-{% endif %}

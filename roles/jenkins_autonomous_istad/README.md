@@ -16,6 +16,7 @@ The role installs Jenkins on Debian/Ubuntu, installs the plugins called out in t
 - The tracked config now uses the public Jenkins URL `https://jenkins.autonomous-istad.com`.
 - The install defaults follow the current official Jenkins Debian/Ubuntu guidance with Java 21 and the 2026 package signing key.
 - Jenkins job definitions now live in `pipeline/jobs.yml`. SCM-backed jobs stay there as repository metadata, while only inline jobs use `pipeline/*.groovy`.
+- Managed jobs are seeded only when missing, so manual Jenkins pipeline edits are preserved across restart and later deploys.
 - The ready-to-run project config now provisions nginx in front of Jenkins so Cloudflare can reach the origin on ports `80` and `443`.
 
 ## Requirements
@@ -103,6 +104,7 @@ just destroy
 - Bulk offline plugin installation with `jenkins-plugin-cli` when available, or the official Jenkins plugin manager jar as a fallback
 - Jenkins Configuration as Code
 - Confirmed plugins from the notes, plus the additional live plugins required by the current pipelines such as `timestamper` and `ws-cleanup`
+- Security-patched plugin pins in `config.yml` when the legacy Jenkins versions are known to be vulnerable
 - nginx reverse proxy on ports `80` and `443`, with a self-signed origin certificate by default so Cloudflare can connect immediately
 - Built-in controller executors set to `2`
 - `trivy` SSH agent definition pointing at `34.143.195.220` with remote path `/home/enz/jenkins`
@@ -118,6 +120,7 @@ just destroy
 - The tracked `config.yml` carries only non-secret settings, while `config-secret.yml` carries local live secrets.
 - Credentials are seeded into Jenkins after startup. Existing Jenkins credentials are preserved by default, but placeholder values, empty values, and wrong credential types are corrected automatically. Set `jenkins_credentials_overwrite_existing: true` only when you explicitly want the repo values to replace every existing credential with the same ID.
 - Job definitions live in `pipeline/jobs.yml`. Only inline Jenkins jobs keep Groovy files under `pipeline/*.groovy`.
+- Jobs are no longer reapplied through JCasC on every restart. Missing jobs are seeded after startup, and existing jobs are left untouched so manual Jenkins pipeline edits persist.
 - The remote server target is set in `config.yml` through `jenkins_target_host`, `jenkins_target_user`, `jenkins_target_port`, and `jenkins_target_python_interpreter`.
 - The tracked config enables nginx with `jenkins_reverse_proxy_tls_mode: self_signed`. That is enough for Cloudflare `Full` mode, but switch to `provided` and store a real origin certificate in `config-secret.yml` if you want Cloudflare `Full (strict)`.
 - `jenkins_release_channel: lts` installs the latest official Long Term Support Jenkins release. Switch it to `weekly` only if you explicitly want the newest weekly line.

@@ -20,6 +20,14 @@
   ansible.builtin.import_tasks: jcasc.yml
   when: jenkins_state == 'present'
 
+- name: Preapprove managed unsandboxed pipeline scripts
+  ansible.builtin.import_tasks: script-approval.yml
+  when: jenkins_state == 'present'
+
+- name: Seed managed Jenkins jobs without overwriting manual job changes
+  ansible.builtin.import_tasks: jobs.yml
+  when: jenkins_state == 'present'
+
 - name: Seed Jenkins credentials without overwriting manual values
   ansible.builtin.import_tasks: credentials.yml
   when: jenkins_state == 'present'

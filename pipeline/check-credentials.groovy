@@ -1,3 +1,10 @@
+import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey
+import com.cloudbees.plugins.credentials.SystemCredentialsProvider
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials
+import java.nio.charset.StandardCharsets
+import org.jenkinsci.plugins.plaincredentials.FileCredentials
+import org.jenkinsci.plugins.plaincredentials.StringCredentials
+
 pipeline {
     agent any
 
@@ -10,6 +17,7 @@ pipeline {
         stage('Check Jenkins Credentials') {
             steps {
                 script {
+
                     def stringCredentialIds = [
                         'sonarqube-token',
                         'DEFECTDOJO',
@@ -50,14 +58,27 @@ pipeline {
                     def issueCount = 0
                     def results = []
 
+                    def currentById = SystemCredentialsProvider.getInstance()
+                        .getCredentials()
+                        .findAll { it?.id }
+                        .collectEntries { [(it.id): it] }
+
+                    def normalizeValue = { value ->
+                        value == null ? '' : value.toString().trim()
+                    }
+
+                    // ✅ FIXED mask function (no takeRight)
                     def maskValue = { String value ->
-                        if (!value) {
-                            return '(empty)'
-                        }
+                        if (!value) return '(empty)'
+
                         if (value.length() <= 8) {
-                            return value[0] + ('*' * Math.max(value.length() - 2, 0)) + value[-1]
+                            if (value.length() <= 2) return value
+                            return value[0] + ('*' * (value.length() - 2)) + value[-1]
                         }
-                        return value.take(4) + '...' + value.takeRight(4)
+
+                        def first = value.substring(0, 4)
+                        def last = value.substring(value.length() - 4)
+                        return first + '...' + last
                     }
 
                     def record = { String id, String type, String status, String detail ->
@@ -67,89 +88,113 @@ pipeline {
                         }
                     }
 
+                    def fileSecretAsString = { FileCredentials credential ->
+                        try {
+                            def bytes = credential?.secretBytes?.plainData
+                            return bytes ? new String(bytes, StandardCharsets.UTF_8) : ''
+                        } catch (Exception ignored) {
+                            return ''
+                        }
+                    }
+
+                    // ---------- STRING ----------
                     for (String id : stringCredentialIds) {
-                        try {
-                            withCredentials([string(credentialsId: id, variable: 'CHECK_SECRET')]) {
-                                if (!env.CHECK_SECRET?.trim()) {
-                                    record(id, 'string', 'EMPTY', '(empty value)')
-                                } else if (env.CHECK_SECRET == 'replace-me') {
-                                    record(id, 'string', 'PLACEHOLDER', 'replace-me')
-                                } else {
-                                    record(id, 'string', 'HAVE', maskValue(env.CHECK_SECRET))
-                                }
-                            }
-                        } catch (Exception ignored) {
+                        def credential = currentById[id]
+                        if (!credential) {
                             record(id, 'string', 'MISSING', '(not found)')
+                        } else if (!(credential instanceof StringCredentials)) {
+                            record(id, 'string', 'WRONG_TYPE', credential.getClass().getName())
+                        } else {
+                            def value = normalizeValue(credential.secret?.plainText)
+                            if (!value) {
+                                record(id, 'string', 'EMPTY', '(empty value)')
+                            } else if (value == 'replace-me') {
+                                record(id, 'string', 'PLACEHOLDER', 'replace-me')
+                            } else {
+                                record(id, 'string', 'HAVE', maskValue(value))
+                            }
                         }
                     }
 
+                    // ---------- USERNAME/PASSWORD ----------
                     for (String id : usernamePasswordCredentialIds) {
-                        try {
-                            withCredentials([usernamePassword(
-                                credentialsId: id,
-                                usernameVariable: 'CHECK_USER',
-                                passwordVariable: 'CHECK_PASS'
-                            )]) {
-                                if (!env.CHECK_USER?.trim() || !env.CHECK_PASS?.trim()) {
-                                    record(id, 'username/password', 'EMPTY', "username=${env.CHECK_USER ?: '(empty)'} password=(empty)")
-                                } else if (env.CHECK_USER == 'replace-me' || env.CHECK_PASS == 'replace-me') {
-                                    record(id, 'username/password', 'PLACEHOLDER', "username=${env.CHECK_USER} password=${maskValue(env.CHECK_PASS)}")
-                                } else {
-                                    record(id, 'username/password', 'HAVE', "username=${env.CHECK_USER} password=${maskValue(env.CHECK_PASS)}")
-                                }
-                            }
-                        } catch (Exception ignored) {
+                        def credential = currentById[id]
+                        if (!credential) {
                             record(id, 'username/password', 'MISSING', '(not found)')
+                        } else if (!(credential instanceof StandardUsernamePasswordCredentials)) {
+                            record(id, 'username/password', 'WRONG_TYPE', credential.getClass().getName())
+                        } else {
+                            def username = normalizeValue(credential.username)
+                            def password = normalizeValue(credential.password?.plainText)
+
+                            if (!username || !password) {
+                                record(id, 'username/password', 'EMPTY',
+                                    "username=${username ?: '(empty)'} password=${password ? '(set)' : '(empty)'}")
+                            } else if (username == 'replace-me' || password == 'replace-me') {
+                                record(id, 'username/password', 'PLACEHOLDER',
+                                    "username=${username} password=${maskValue(password)}")
+                            } else {
+                                record(id, 'username/password', 'HAVE',
+                                    "username=${username} password=${maskValue(password)}")
+                            }
                         }
                     }
 
+                    // ---------- FILE ----------
                     for (String id : fileCredentialIds) {
-                        try {
-                            withCredentials([file(credentialsId: id, variable: 'CHECK_FILE')]) {
-                                def content = sh(script: 'cat "$CHECK_FILE"', returnStdout: true).trim()
-                                if (!content) {
-                                    record(id, 'file', 'EMPTY', '(empty file)')
-                                } else if (content == 'replace-me') {
-                                    record(id, 'file', 'PLACEHOLDER', 'replace-me')
-                                } else {
-                                    def lines = content.readLines().findAll { it?.trim() }
-                                    def keys = lines.collect { line ->
-                                        line.contains('=') ? line.substring(0, line.indexOf('=')) : line
-                                    }.take(5)
-                                    record(id, 'file', 'HAVE', "lines=${lines.size()} keys=${keys.join(', ')}")
-                                }
-                            }
-                        } catch (Exception ignored) {
+                        def credential = currentById[id]
+                        if (!credential) {
                             record(id, 'file', 'MISSING', '(not found)')
-                        }
-                    }
+                        } else if (!(credential instanceof FileCredentials)) {
+                            record(id, 'file', 'WRONG_TYPE', credential.getClass().getName())
+                        } else {
+                            def content = normalizeValue(fileSecretAsString(credential))
 
-                    for (String id : sshCredentialIds) {
-                        try {
-                            withCredentials([sshUserPrivateKey(
-                                credentialsId: id,
-                                keyFileVariable: 'CHECK_KEY',
-                                usernameVariable: 'CHECK_SSH_USER'
-                            )]) {
-                                def fileStatus = sh(
-                                    script: 'if grep -q "replace-me" "$CHECK_KEY"; then echo PLACEHOLDER; else echo OK; fi',
-                                    returnStdout: true
-                                ).trim()
-                                if (fileStatus == 'PLACEHOLDER' || env.CHECK_SSH_USER == 'replace-me') {
-                                    record(id, 'ssh', 'PLACEHOLDER', "username=${env.CHECK_SSH_USER}")
-                                } else {
-                                    def fingerprint = sh(
-                                        script: 'ssh-keygen -lf "$CHECK_KEY" | awk \'{print $2}\'',
-                                        returnStdout: true
-                                    ).trim()
-                                    record(id, 'ssh', 'HAVE', "username=${env.CHECK_SSH_USER} fingerprint=${fingerprint}")
-                                }
+                            if (!content) {
+                                record(id, 'file', 'EMPTY', '(empty file)')
+                            } else if (content == 'replace-me') {
+                                record(id, 'file', 'PLACEHOLDER', 'replace-me')
+                            } else {
+                                def lines = content.readLines().findAll { it?.trim() }
+                                def keys = lines.collect { line ->
+                                    line.contains('=') ? line.substring(0, line.indexOf('=')) : line
+                                }.take(5)
+
+                                record(id, 'file', 'HAVE',
+                                    "lines=${lines.size()} keys=${keys.join(', ')}")
                             }
-                        } catch (Exception ignored) {
-                            record(id, 'ssh', 'MISSING', '(not found)')
                         }
                     }
 
+                    // ---------- SSH ----------
+                    for (String id : sshCredentialIds) {
+                        def credential = currentById[id]
+                        if (!credential) {
+                            record(id, 'ssh', 'MISSING', '(not found)')
+                        } else if (!(credential instanceof SSHUserPrivateKey)) {
+                            record(id, 'ssh', 'WRONG_TYPE', credential.getClass().getName())
+                        } else {
+                            def username = normalizeValue(credential.username)
+                            def firstKey = ''
+
+                            try {
+                                firstKey = normalizeValue((credential.privateKeys ?: [''])[0])
+                            } catch (Exception ignored) {}
+
+                            if (!username || !firstKey) {
+                                record(id, 'ssh', 'EMPTY',
+                                    "username=${username ?: '(empty)'} key=${firstKey ? '(set)' : '(empty)'}")
+                            } else if (username == 'replace-me' || firstKey.contains('replace-me')) {
+                                record(id, 'ssh', 'PLACEHOLDER', "username=${username}")
+                            } else {
+                                def keyLine = firstKey.readLines().find { it && !it.startsWith('-----') } ?: firstKey
+                                record(id, 'ssh', 'HAVE',
+                                    "username=${username} key=${maskValue(keyLine)}")
+                            }
+                        }
+                    }
+
+                    // ---------- OUTPUT ----------
                     echo 'Credential status summary:'
                     results.each { item ->
                         echo "${item.id} | ${item.type} | ${item.status} | ${item.detail}"
@@ -157,9 +202,9 @@ pipeline {
 
                     if (issueCount > 0) {
                         currentBuild.result = 'UNSTABLE'
-                        echo "Credential check finished with ${issueCount} non-HAVE item(s)."
+                        echo "Credential check finished with ${issueCount} issue(s)."
                     } else {
-                        echo 'Credential check finished with all credentials in HAVE state.'
+                        echo 'All credentials are in HAVE state.'
                     }
                 }
             }

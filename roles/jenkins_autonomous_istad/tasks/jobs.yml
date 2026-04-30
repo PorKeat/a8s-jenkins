@@ -1,0 +1,10 @@
+---
+- name: Seed missing Jenkins jobs while preserving manual Jenkins job changes
+  community.general.jenkins_script:
+    script: "{{ lookup('template', 'jobs-seed.groovy.j2') }}"
+    url: "{{ jenkins_local_url }}"
+    user: "{{ jenkins_admin_username }}"
+    password: "{{ jenkins_admin_password }}"
+  register: jenkins_jobs_seed
+  changed_when: "'CHANGED' in jenkins_jobs_seed.output"
+  when: jenkins_manage_jobs | bool

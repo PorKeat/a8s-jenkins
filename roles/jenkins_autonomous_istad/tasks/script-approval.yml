@@ -1,0 +1,12 @@
+---
+- name: Preapprove managed unsandboxed inline pipeline scripts
+  community.general.jenkins_script:
+    script: "{{ lookup('template', 'script-approval.groovy.j2') }}"
+    url: "{{ jenkins_local_url }}"
+    user: "{{ jenkins_admin_username }}"
+    password: "{{ jenkins_admin_password }}"
+  register: jenkins_script_approval_seed
+  changed_when: "'CHANGED' in jenkins_script_approval_seed.output"
+  when:
+    - jenkins_manage_jobs | bool
+    - (jenkins_inline_pipeline_jobs | selectattr('sandbox', 'defined') | selectattr('sandbox', 'equalto', false) | list | length) > 0

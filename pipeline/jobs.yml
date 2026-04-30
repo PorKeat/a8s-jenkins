@@ -197,6 +197,7 @@ jenkins_inline_pipeline_jobs:
   - name: check-credentials
     description: Helper pipeline to show the current Jenkins credential values or placeholders.
     pipeline_file: pipeline/check-credentials.groovy
+    sandbox: false
     days_to_keep: -1
     num_to_keep: 20
     disable_concurrent_builds: true

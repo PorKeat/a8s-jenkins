@@ -1,0 +1,165 @@
+import com.cloudbees.jenkins.GitHubPushTrigger
+import hudson.model.BooleanParameterDefinition
+import hudson.model.ParametersDefinitionProperty
+import hudson.model.StringParameterDefinition
+import hudson.plugins.git.BranchSpec
+import hudson.plugins.git.GitSCM
+import hudson.plugins.git.UserRemoteConfig
+import hudson.plugins.git.extensions.impl.CleanBeforeCheckout
+import hudson.tasks.LogRotator
+import java.nio.charset.StandardCharsets
+import jenkins.model.Jenkins
+import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition
+import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition
+import org.jenkinsci.plugins.workflow.job.WorkflowJob
+import org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty
+
+def jenkins = Jenkins.get()
+def changed = false
+
+def createWorkflowJobIfMissing = { String name, Closure initializer ->
+    def existing = jenkins.getItem(name)
+    if (existing != null) {
+        println("SKIPPED:${name}")
+        return false
+    }
+
+    def job = jenkins.createProject(WorkflowJob, name)
+    initializer(job)
+    job.save()
+    println("CREATED:${name}")
+    return true
+}
+
+def addParametersIfNeeded = { WorkflowJob job, List parameterSpecs ->
+    if (!parameterSpecs || parameterSpecs.isEmpty()) {
+        return
+    }
+
+    def definitions = parameterSpecs.collect { spec ->
+        switch ((spec.type ?: '').toString()) {
+            case 'string':
+                return new StringParameterDefinition(
+                    spec.name?.toString(),
+                    (spec.default ?: '').toString(),
+                    (spec.description ?: '').toString()
+                )
+            case 'boolean':
+                return new BooleanParameterDefinition(
+                    spec.name?.toString(),
+                    (spec.default ?: false) as boolean,
+                    (spec.description ?: '').toString()
+                )
+            default:
+                throw new IllegalArgumentException("Unsupported parameter type '${spec.type}' for job '${job.name}'")
+        }
+    }
+
+    job.addProperty(new ParametersDefinitionProperty(definitions))
+}
+
+def addDisableConcurrentBuildsIfNeeded = { WorkflowJob job, boolean disableConcurrentBuilds ->
+    if (disableConcurrentBuilds) {
+        job.addProperty(new DisableConcurrentBuildsJobProperty())
+    }
+}
+
+def addGitHubPushTriggerIfNeeded = { WorkflowJob job, boolean githubPush ->
+    if (githubPush) {
+        def trigger = new GitHubPushTrigger()
+        job.addTrigger(trigger)
+        trigger.start(job, true)
+    }
+}
+
+{% for job in jenkins_pipeline_jobs %}
+changed = createWorkflowJobIfMissing({{ job.name | to_json }}) { WorkflowJob workflowJob ->
+    workflowJob.setDescription({{ job.description | default('Managed by Ansible.') | to_json }})
+    workflowJob.setDisabled({{ job.disabled | default(false) | string | lower }})
+{% if job.build_discarder | default(true) %}
+    workflowJob.setBuildDiscarder(new LogRotator({{ job.days_to_keep | default(30) }}, {{ job.num_to_keep | default(20) }}, -1, -1))
+{% endif %}
+    addDisableConcurrentBuildsIfNeeded(workflowJob, {{ job.disable_concurrent_builds | default(false) | string | lower }})
+    addGitHubPushTriggerIfNeeded(workflowJob, {{ job.github_push | default(false) | string | lower }})
+{% if job.parameters is defined and job.parameters %}
+    addParametersIfNeeded(workflowJob, [
+{% for parameter in job.parameters %}
+        [
+            type: {{ parameter.type | to_json }},
+            name: {{ parameter.name | to_json }},
+            default: {{ parameter.default | default('') | to_json }},
+            description: {{ parameter.description | default('') | to_json }}
+        ]{% if not loop.last %},{% endif %}
+{% endfor %}
+    ])
+{% endif %}
+
+    def extensions = []
+{% if job.clean_before_checkout | default(false) %}
+    extensions << new CleanBeforeCheckout()
+{% endif %}
+    def scm = new GitSCM(
+        [
+            new UserRemoteConfig(
+                {{ job.repo_url | to_json }},
+                null,
+                null,
+{% if job.credential_id is defined and job.credential_id %}
+                {{ job.credential_id | to_json }}
+{% else %}
+                null
+{% endif %}
+            )
+        ],
+        [new BranchSpec({{ ('*/' ~ job.branch) | to_json }})],
+        false,
+        [],
+        null,
+        null,
+        extensions
+    )
+
+    def definition = new CpsScmFlowDefinition(scm, {{ job.script_path | default('Jenkinsfile') | to_json }})
+    definition.setLightweight({{ job.lightweight | default(true) | string | lower }})
+    workflowJob.setDefinition(definition)
+} || changed
+{% endfor %}
+
+{% for job in jenkins_inline_pipeline_jobs %}
+{% if job.pipeline_file is defined %}
+{% set inline_script = lookup('file', playbook_dir ~ '/' ~ job.pipeline_file) %}
+{% else %}
+{% set inline_script = lookup('template', job.script_template) %}
+{% endif %}
+{% set inline_script_b64 = inline_script | b64encode %}
+changed = createWorkflowJobIfMissing({{ job.name | to_json }}) { WorkflowJob workflowJob ->
+    workflowJob.setDescription({{ job.description | default('Managed by Ansible.') | to_json }})
+    workflowJob.setDisabled({{ job.disabled | default(false) | string | lower }})
+{% if job.build_discarder | default(true) %}
+    workflowJob.setBuildDiscarder(new LogRotator({{ job.days_to_keep | default(30) }}, {{ job.num_to_keep | default(20) }}, -1, -1))
+{% endif %}
+    addDisableConcurrentBuildsIfNeeded(workflowJob, {{ job.disable_concurrent_builds | default(false) | string | lower }})
+{% if job.parameters is defined and job.parameters %}
+    addParametersIfNeeded(workflowJob, [
+{% for parameter in job.parameters %}
+        [
+            type: {{ parameter.type | to_json }},
+            name: {{ parameter.name | to_json }},
+            default: {{ parameter.default | default('') | to_json }},
+            description: {{ parameter.description | default('') | to_json }}
+        ]{% if not loop.last %},{% endif %}
+{% endfor %}
+    ])
+{% endif %}
+
+    def scriptText = new String({{ inline_script_b64 | to_json }}.decodeBase64(), StandardCharsets.UTF_8)
+    workflowJob.setDefinition(new CpsFlowDefinition(scriptText, {{ job.sandbox | default(true) | string | lower }}))
+} || changed
+{% endfor %}
+
+if (changed) {
+    jenkins.save()
+    println('CHANGED')
+} else {
+    println('UNCHANGED')
+}

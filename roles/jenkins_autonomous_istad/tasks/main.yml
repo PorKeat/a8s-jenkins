@@ -17,7 +17,9 @@
 
 - name: Prepare Jenkins controller SSH assets for managed agents
   ansible.builtin.import_tasks: agents.yml
-  when: jenkins_state == 'present'
+  when:
+    - jenkins_state == 'present'
+    - jenkins_seed_agents | default(false) | bool
 
 - name: Apply Jenkins Configuration as Code
   ansible.builtin.import_tasks: jcasc.yml

@@ -17,7 +17,7 @@ jenkins:
   authorizationStrategy:
     loggedInUsersCanDoAnything:
       allowAnonymousRead: false
-{% if jenkins_agents | length > 0 %}
+{% if jenkins_seed_agents | default(false) | bool and jenkins_agents | length > 0 %}
   nodes:
 {% for agent in jenkins_agents %}
     - permanent:

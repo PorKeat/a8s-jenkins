@@ -2,6 +2,9 @@
 - name: Validate role inputs
   ansible.builtin.import_tasks: validate.yml
 
+- name: Load dynamic JSON configurations
+  ansible.builtin.import_tasks: dynamic_configs.yml
+
 - name: Install Jenkins
   ansible.builtin.import_tasks: install.yml
   when:
@@ -22,19 +25,27 @@
 
 - name: Preapprove managed unsandboxed pipeline scripts
   ansible.builtin.import_tasks: script-approval.yml
-  when: jenkins_state == 'present'
+  when:
+    - jenkins_state == 'present'
+    - jenkins_seed_scripts_approval | default(false) | bool
 
 - name: Seed managed Jenkins jobs without overwriting manual job changes
   ansible.builtin.import_tasks: jobs.yml
-  when: jenkins_state == 'present'
+  when:
+    - jenkins_state == 'present'
+    - jenkins_seed_jobs | default(false) | bool
 
 - name: Seed Jenkins credentials without overwriting manual values
   ansible.builtin.import_tasks: credentials.yml
-  when: jenkins_state == 'present'
+  when:
+    - jenkins_state == 'present'
+    - jenkins_seed_credentials | default(false) | bool
 
 - name: Configure Jenkins shared libraries
   ansible.builtin.import_tasks: libraries.yml
-  when: jenkins_state == 'present'
+  when:
+    - jenkins_state == 'present'
+    - jenkins_seed_shared_libraries | default(false) | bool
 
 - name: Configure Jenkins reverse proxy
   ansible.builtin.import_tasks: proxy.yml

@@ -18,7 +18,7 @@ Sensitive document. This file contains live credentials and private key material
 - `deploy-pipeliness`
 - `deploy-service-test`
 - `share_lib`
-- `trivy`
+- `istad`
 
 ## Agents / Nodes
 
@@ -27,9 +27,9 @@ Sensitive document. This file contains live credentials and private key material
 - Type: Jenkins controller built-in node
 - Executors: `2`
 
-### Trivy Node
+### Istad Node
 
-- Label: `trivy`
+- Label: `istad`
 - Executors: `1`
 - Remote path: `/home/enz/jenkins`
 - Used by the image build/scan/push stage in the shared deploy pipeline
@@ -93,7 +93,7 @@ Job: `deploy-pipeline`
 4. Detect framework
 5. Prepare or generate Dockerfile
 6. Build image
-7. Run Trivy scan on the `trivy` agent
+7. Run Trivy scan on the `istad` agent
 8. Upload scan to DefectDojo
 9. Push image to registry
 10. Update GitOps repository
@@ -199,7 +199,7 @@ The `share_lib` job currently runs:
 
 - Library: `@Library('share_lib') _`
 - Function: `trivyDefectdojoPipeline(...)`
-- Agent label: `trivy`
+- Agent label: `istad`
 - Git URL: `https://github.com/chengdevith/jobservice.git`
 - Branch: `main`
 - Image name: `jobservice`

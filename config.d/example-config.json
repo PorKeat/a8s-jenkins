@@ -1,0 +1,50 @@
+{
+  "plugins": [
+    { "name": "git", "version": "5.10.1" },
+    { "name": "github-api", "version": "1.330-492.v3941a_032db_2a_" }
+  ],
+  "agents": [
+    {
+      "name": "example-agent",
+      "label": "example",
+      "executors": 1,
+      "remote_fs": "/home/jenkins",
+      "description": "Example agent",
+      "mode": "NORMAL",
+      "launcher": {
+        "type": "inbound",
+        "web_socket": false
+      }
+    }
+  ],
+  "jobs": {
+    "pipeline": [
+      {
+        "name": "example-pipeline",
+        "description": "Example pipeline",
+        "repo_url": "https://github.com/example/example.git",
+        "branch": "main",
+        "script_path": "Jenkinsfile",
+        "credential_id": "example-credential",
+        "github_push": true,
+        "lightweight": true
+      }
+    ],
+    "inline_pipeline": [],
+    "shared_libraries": []
+  },
+  "credentials": {
+    "username_password": [
+      {
+        "id": "example-credential",
+        "description": "Example username/password",
+        "username": "example_user",
+        "password": "example_password"
+      }
+    ],
+    "ssh_private_key": [],
+    "string": [],
+    "file": [],
+    "scm_token": []
+  }
+}

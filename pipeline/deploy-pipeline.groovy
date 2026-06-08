@@ -274,7 +274,7 @@ pipeline {
             when {
                 expression { return !params.DOMAIN_ONLY_UPDATE }
             }
-            agent { label 'trivy' }
+            agent { label 'istad' }
             steps {
                 script {
                     dir('platform-infra') {

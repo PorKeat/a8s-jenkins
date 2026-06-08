@@ -1,0 +1,74 @@
+---
+- name: Find dynamic JSON configurations
+  delegate_to: localhost
+  ansible.builtin.find:
+    paths: "{{ inventory_dir }}/config.d"
+    patterns: "*.json"
+  register: dynamic_config_files
+
+- name: Load dynamic JSON configurations
+  delegate_to: localhost
+  ansible.builtin.set_fact:
+    dynamic_configs: "{{ dynamic_configs | default([]) + [lookup('file', item.path) | from_json] }}"
+  loop: "{{ dynamic_config_files.files }}"
+  when: dynamic_config_files.matched > 0
+
+- name: Merge dynamic plugins
+  ansible.builtin.set_fact:
+    jenkins_plugins: "{{ jenkins_plugins + item.plugins }}"
+  loop: "{{ dynamic_configs | default([]) }}"
+  when: item.plugins is defined
+
+- name: Merge dynamic agents
+  ansible.builtin.set_fact:
+    jenkins_agents: "{{ jenkins_agents + item.agents }}"
+  loop: "{{ dynamic_configs | default([]) }}"
+  when: item.agents is defined
+
+- name: Merge dynamic pipeline jobs
+  ansible.builtin.set_fact:
+    jenkins_pipeline_jobs: "{{ jenkins_pipeline_jobs + item.jobs.pipeline }}"
+  loop: "{{ dynamic_configs | default([]) }}"
+  when: item.jobs is defined and item.jobs.pipeline is defined
+
+- name: Merge dynamic inline pipeline jobs
+  ansible.builtin.set_fact:
+    jenkins_inline_pipeline_jobs: "{{ jenkins_inline_pipeline_jobs + item.jobs.inline_pipeline }}"
+  loop: "{{ dynamic_configs | default([]) }}"
+  when: item.jobs is defined and item.jobs.inline_pipeline is defined
+
+- name: Merge dynamic shared libraries
+  ansible.builtin.set_fact:
+    jenkins_shared_libraries: "{{ jenkins_shared_libraries + item.jobs.shared_libraries }}"
+  loop: "{{ dynamic_configs | default([]) }}"
+  when: item.jobs is defined and item.jobs.shared_libraries is defined
+
+- name: Merge dynamic string credentials
+  ansible.builtin.set_fact:
+    jenkins_string_credentials: "{{ jenkins_string_credentials + item.credentials.string }}"
+  loop: "{{ dynamic_configs | default([]) }}"
+  when: item.credentials is defined and item.credentials.string is defined
+
+- name: Merge dynamic file credentials
+  ansible.builtin.set_fact:
+    jenkins_file_credentials: "{{ jenkins_file_credentials + item.credentials.file }}"
+  loop: "{{ dynamic_configs | default([]) }}"
+  when: item.credentials is defined and item.credentials.file is defined
+
+- name: Merge dynamic scm token credentials
+  ansible.builtin.set_fact:
+    jenkins_scm_token_credentials: "{{ jenkins_scm_token_credentials + item.credentials.scm_token }}"
+  loop: "{{ dynamic_configs | default([]) }}"
+  when: item.credentials is defined and item.credentials.scm_token is defined
+
+- name: Merge dynamic username password credentials
+  ansible.builtin.set_fact:
+    jenkins_username_password_credentials: "{{ jenkins_username_password_credentials + item.credentials.username_password }}"
+  loop: "{{ dynamic_configs | default([]) }}"
+  when: item.credentials is defined and item.credentials.username_password is defined
+
+- name: Merge dynamic ssh private key credentials
+  ansible.builtin.set_fact:
+    jenkins_ssh_private_key_credentials: "{{ jenkins_ssh_private_key_credentials + item.credentials.ssh_private_key }}"
+  loop: "{{ dynamic_configs | default([]) }}"
+  when: item.credentials is defined and item.credentials.ssh_private_key is defined

@@ -13,6 +13,12 @@ jenkins_reverse_proxy_server_name: "jenkins.autonomous-istad.com"
 jenkins_reverse_proxy_tls_mode: "self_signed"
 jenkins_reverse_proxy_http_redirect_to_https: false
 
+# Seeding toggles (enable/disable automatic creation of Jenkins data)
+jenkins_seed_scripts_approval: false
+jenkins_seed_jobs: false
+jenkins_seed_credentials: false
+jenkins_seed_shared_libraries: false
+
 # Local service settings on the Jenkins host.
 jenkins_http_port: 8080
 jenkins_wait_host: "127.0.0.1"

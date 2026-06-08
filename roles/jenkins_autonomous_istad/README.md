@@ -2,7 +2,7 @@
 
 An Ansible Galaxy-style role that automates the Jenkins controller setup described in `setup.md`.
 
-The role installs Jenkins on Debian/Ubuntu, installs the plugins called out in the notes in one bulk pass, applies Jenkins Configuration as Code (JCasC), creates the documented `trivy` SSH agent definition, configures the SonarQube Scanner tool installation, and seeds the application and deployment jobs documented from the legacy Jenkins.
+The role installs Jenkins on Debian/Ubuntu, installs the plugins called out in the notes in one bulk pass, applies Jenkins Configuration as Code (JCasC), creates the documented `istad` SSH agent definition, configures the SonarQube Scanner tool installation, and seeds the application and deployment jobs documented from the legacy Jenkins.
 
 - `a8s-backend`
 - `a8s-frontend`
@@ -108,7 +108,7 @@ just destroy
 - Security-patched plugin pins in `config.yml` when the legacy Jenkins versions are known to be vulnerable
 - nginx reverse proxy on ports `80` and `443`, with a self-signed origin certificate by default so Cloudflare can connect immediately
 - Built-in controller executors set to `2`
-- `trivy` SSH agent definition pointing at `34.143.195.220` with remote path `/home/enz/jenkins`
+- `istad` SSH agent definition pointing at `34.143.195.220` with remote path `/home/enz/jenkins`
 - SonarQube Scanner tool installation named `sonar-scanner`
 - Local admin user
 - Jenkins credentials provided through vars

@@ -56,105 +56,24 @@ jenkins_admin_email: jenkins@example.com
 jenkins_plugins:
   - name: configuration-as-code
   - name: job-dsl
-  - name: ant
-  - name: build-timeout
-  - name: dark-theme
-  - name: email-ext
-  - name: gradle
-  - name: workflow-aggregator
-  - name: workflow-cps
-  - name: workflow-job
-  - name: workflow-multibranch
-  - name: pipeline-build-step
-  - name: pipeline-graph-view
-  - name: pipeline-github-lib
-  - name: pipeline-model-definition
-  - name: pipeline-groovy-lib
-  - name: git
-  - name: git-client
-  - name: github
-  - name: github-api
-  - name: github-branch-source
-  - name: credentials
-  - name: credentials-binding
-  - name: ldap
-  - name: matrix-auth
-  - name: matrix-project
-  - name: ssh-credentials
-  - name: ssh-slaves
-  - name: sonar
-    version: 2.18.2
-  - name: sonar-quality-gates
-    version: "364.v67a_f255f340f"
-  - name: theme-manager
-  - name: timestamper
-  - name: ws-cleanup
 
-jenkins_agents:
-  - name: trivy
-    label: trivy
-    executors: 1
-    remote_fs: /home/enz/jenkins
-    description: Used by the image build, scan, and push stage in the shared deploy pipeline.
-    mode: NORMAL
-    launcher:
-      type: inbound
-      web_socket: false
+jenkins_agents: []
 
 jenkins_manage_jobs: true
-jenkins_pipeline_jobs:
-  - name: a8s-backend
-    description: Managed pipeline job for the a8s-backend repository.
-    repo_url: https://github.com/ITProfessional-Gen01/a8s-backend.git
-    branch: main
-    script_path: Jenkinsfile
-    credential_id: a8s-backend-credential
-    github_push: true
-    lightweight: true
-  - name: a8s-frontend
-    description: Managed pipeline job for the a8s-frontend repository.
-    repo_url: https://github.com/ITProfessional-Gen01/a8s-frontend.git
-    branch: main
-    script_path: Jenkinsfile
-    credential_id: a8s-frontend-credential
-    github_push: true
-    lightweight: true
-  - name: a8s-admin
-    description: Managed pipeline job for the a8s-admin repository.
-    repo_url: https://github.com/ITProfessional-Gen01/a8s-admin.git
-    branch: main
-    script_path: Jenkinsfile
-    credential_id: a8s-backend-credential
-    github_push: true
-    lightweight: true
+jenkins_pipeline_jobs: []
 
 jenkins_placeholder_jobs: []
 
 jenkins_inline_pipeline_jobs: []
 jenkins_shared_libraries: []
 
-jenkins_string_credentials:
-  - id: sonarqube-token
-    description: SonarQube token
-    secret: ""
+jenkins_string_credentials: []
 
 jenkins_file_credentials: []
 jenkins_scm_token_default_username: replace-me
 jenkins_scm_token_credentials: []
 jenkins_credentials_overwrite_existing: false
 
-jenkins_username_password_credentials:
-  - id: a8s-backend-credential
-    description: SCM credential for a8s-backend
-    username: ""
-    password: ""
-  - id: a8s-frontend-credential
-    description: SCM credential for a8s-frontend
-    username: ""
-    password: ""
+jenkins_username_password_credentials: []
 
-jenkins_ssh_private_key_credentials:
-  - id: gitops-ssh
-    description: Monolithic GitOps SSH credential
-    username: git
-    private_key: ""
+jenkins_ssh_private_key_credentials: []

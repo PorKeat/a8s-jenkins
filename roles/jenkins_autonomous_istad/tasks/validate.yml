@@ -89,5 +89,6 @@
   loop: "{{ jenkins_agents }}"
   when:
     - jenkins_state == 'present'
+    - jenkins_seed_agents | default(false) | bool
     - item.launcher is defined
     - item.launcher.type | default('inbound') == 'ssh'

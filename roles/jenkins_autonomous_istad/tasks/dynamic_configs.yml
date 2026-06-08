@@ -1,6 +1,7 @@
 ---
 - name: Find dynamic JSON configurations
   delegate_to: localhost
+  become: false
   ansible.builtin.find:
     paths: "{{ inventory_dir }}/config.d"
     patterns: "*.json"
@@ -8,6 +9,7 @@
 
 - name: Load dynamic JSON configurations
   delegate_to: localhost
+  become: false
   ansible.builtin.set_fact:
     dynamic_configs: "{{ dynamic_configs | default([]) + [lookup('file', item.path) | from_json] }}"
   loop: "{{ dynamic_config_files.files }}"
